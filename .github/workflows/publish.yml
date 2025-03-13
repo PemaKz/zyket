@@ -19,18 +19,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Setup Git user
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-      
-      - name: Bump version
-        run: npm version patch -m "Bump version to %s"
-
-      - name: Push version bump
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/PemaKz/zyket.git
-          git push --follow-tags
+      - name:  'Bump version'
+        id: version-bump
+        uses:  'phips28/gh-action-bump-version@master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          commit-message: 'CI: bumps version to {{version}} [skip ci]' 
       
       - name: Publish to npm
         run: npm publish
