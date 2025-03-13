@@ -27,8 +27,10 @@ jobs:
       - name: Bump version
         run: npm version patch -m "Bump version to %s"
 
-      - name: Push changes
-        run: git push --follow-tags
+      - name: Push version bump
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/PemaKz/zyket.git
+          git push --follow-tags
       
       - name: Publish to npm
         run: npm publish
