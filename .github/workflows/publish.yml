@@ -1,7 +1,8 @@
 name: Publish Package to npmjs
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,6 +18,17 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Bump version
+        run: npm version patch -m "Bump version to %s"
+
+      - name: Commit version bump
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "Bump version"
+          git push
       
       - name: Publish to npm
         run: npm publish
