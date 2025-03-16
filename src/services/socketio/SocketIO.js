@@ -40,9 +40,9 @@ module.exports = class SocketIO extends Service {
           this.#container.get('logger').warn(`You are using a middleware that does not exist`);
           continue;
         }
-        middleware.handle({ container: this.#container, socket });
+        middleware.handle({ container: this.#container, socket, io: this.io });
       }
-      connectionHandler.handle({ container: this.#container, socket });
+      connectionHandler.handle({ container: this.#container, socket, io: this.io });
       handlers.forEach((handler) => {
         const handlerMiddlewares = (handler?.middlewares || []).map(mdl => this.middlewares[mdl])
         socket.on(handler.event, async (data) => {
@@ -52,9 +52,9 @@ module.exports = class SocketIO extends Service {
               this.#container.get('logger').warn(`You are using a middleware that does not exist`);
               continue;
             }
-            await middleware.handle({ container: this.#container, socket });
+            await middleware.handle({ container: this.#container, socket, io: this.io });
           }
-          return await handler.handle({ container: this.#container, socket, data });
+          return await handler.handle({ container: this.#container, socket, data, io: this.io });
         });
       });
     });
@@ -65,15 +65,8 @@ module.exports = class SocketIO extends Service {
 
   async #loadConnectionHandler() {
     const connectionHandlerExists  = fs.existsSync(path.join(process.cwd(), "src", "handlers", "connection.js"));
-    /* if exists require, otherwise create a default one */
     if(!connectionHandlerExists) {
-      fs.writeFileSync(path.join(process.cwd(), "src", "handlers", "connection.js"), `const { Handler } = require("zyket");
-
-module.exports = class ConnectionHandler extends Handler {
-  async handle({ container, socket }) {
-    container.get("logger").info("New connection");
-  }
-};`);
+      this.#container.get('template-manager').installFile('default/src/handlers/connection', path.join(process.cwd(), "src", "handlers", "connection.js"));
     }
     return require(path.join(process.cwd(), "src", "handlers", "connection.js"));
   }
@@ -94,16 +87,7 @@ module.exports = class ConnectionHandler extends Handler {
     if (fs.existsSync(handlersFolder) && !overwrite) return;
     this.#container.get('logger').info(`Creating handlers folder at ${handlersFolder}`);
     fs.mkdirSync(handlersFolder);
-    // create a default handler
-    fs.writeFileSync(path.join(handlersFolder, "message.js"), `const { Handler } = require("zyket");
-module.exports = class MessageHandler extends Handler {
-  event = "message";
-  middlewares = ["default"];
-
-  async handle({ container, socket, data }) {
-    container.get("logger").info("Message handler");
-  }
-};`);
+    this.#container.get('template-manager').installFile('default/src/handlers/message', path.join(handlersFolder, "message.js"));
   }
 
   async #loadMiddlewaresFromFolder(middlewaresFolder) {
@@ -123,13 +107,7 @@ module.exports = class MessageHandler extends Handler {
     if (fs.existsSync(middlewaresFolder) && !overwrite) return;
     this.#container.get('logger').info(`Creating middlewares folder at ${middlewaresFolder}`);
     fs.mkdirSync(middlewaresFolder);
-    // create a default middleware
-    fs.writeFileSync(path.join(middlewaresFolder, "default.js"), `const { Middleware } = require("zyket");
-module.exports = class DefaultMiddleware extends Middleware {
-  async handle({ container, socket }) {
-    container.get("logger").info("Default middleware");
-  }
-};`);
+    this.#container.get('template-manager').installFile('default/src/middlewares/default', path.join(middlewaresFolder, "default.js"));
   }
 
   stop() {

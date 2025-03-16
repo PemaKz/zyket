@@ -18,7 +18,7 @@ module.exports = class Database extends Service {
   
   async boot() {
     this.#createModelsFolder();
-    this.sequelize = new Sequelize(process.env.DATABASE_URL, {
+    this.sequelize = new Sequelize(this.#databaseUrl, {
       dialect: process.env.DATABASE_DIALECT || 'mariadb',
       logging: (msg) => this.#container.get('logger').debug(msg),
       operatorsAliases: 0,

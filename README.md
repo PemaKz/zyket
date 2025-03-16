@@ -30,7 +30,7 @@ const { Handler } = require("zyket");
 module.exports = class MessageHandler extends Handler {
     middlewares = ["default"];
 
-    async handle({ container, socket, data }) {
+    async handle({ container, socket, data, io }) {
         container.get("logger").info("Message handler");
     }
 };
@@ -48,7 +48,7 @@ Middlewares allow you to process data before it reaches the handler. They can be
 const { Middleware } = require("zyket");
 
 module.exports = class DefaultMiddleware extends Middleware {
-    async handle({ container, socket }) {
+    async handle({ container, socket, io }) {
         container.get("logger").info("Default middleware");
     }
 };
