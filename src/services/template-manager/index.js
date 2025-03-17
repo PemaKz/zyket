@@ -4,12 +4,10 @@ const path = require('path');
 const fs = require('fs');
 
 module.exports = class TemplateManager extends Service {
-  #container;
   templates = {}
 
-  constructor(container) {
+  constructor() {
     super('template-manager');
-    this.#container = container;
   }
 
   async boot() {
@@ -17,19 +15,19 @@ module.exports = class TemplateManager extends Service {
       cwd: path.join(__dirname, '../../templates'),
     });
     for (const template of zyketTemplates) {
-      // need to copy full file  and relation with the name on templates variable
       const templatePath = path.join(__dirname, '../../templates', template);
       const templateContent = fs.readFileSync(templatePath, 'utf-8');
-      this.templates[template.replace('.js', '')] = templateContent;   
+      this.templates[template.replace('.js', '')] = {
+        route: template,
+        content: templateContent
+      };   
     }
-
-    this.#container.get('logger').info(`Loaded ${this.templates.length} templates`);
   }
 
   installFile(fileName, location) {
     const template = this.templates[fileName];
     if (!template) throw new Error(`Template ${fileName} not found`);
-    return fs.writeFileSync(location, template);
+    return fs.writeFileSync(location, template?.content);
   }
 
   installTemplate(templateName) {
@@ -38,16 +36,17 @@ module.exports = class TemplateManager extends Service {
     const files = this.getTemplate(templateName);
     
     for (const file of files) {
-      const fileName = file.split('/').slice(1).join('/');
+      const fileName = file?.route.split('/').slice(1).join('/');
       const fileLocation = path.join(process.cwd(), fileName);
       if (fs.existsSync(fileLocation)) throw new Error(`File ${file} already exists`);
     }
 
     for (const file of files) {
-      const fileName = file.split('/').slice(1).join('/');
-      const template = this.templates[file];
+      const fileName = file?.route.split('/').slice(1).join('/');
       const fileLocation = path.join(process.cwd(), fileName);
-      fs.writeFileSync(fileLocation, template);
+      const folderLocation = path.join(process.cwd(), fileName.split('/').slice(0, -1).join('/'));
+      fs.mkdirSync(folderLocation, { recursive: true });
+      fs.writeFileSync(fileLocation, file?.content);
     }
   }
 
@@ -62,6 +61,10 @@ module.exports = class TemplateManager extends Service {
   getTemplate(templateName) {
     const files = Object.keys(this.templates).filter((t) => t.startsWith(templateName));
     if (files.length === 0) throw new Error(`Template ${templateName} not found`);
-    return files
+    return files.map((file) => this.templates[file]);
+  }
+
+  exists(templateName) {
+    return this.getTemplates().some((t) => t === templateName);
   }
 }
