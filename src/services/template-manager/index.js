@@ -50,6 +50,9 @@ module.exports = class TemplateManager extends Service {
     }
   }
 
+  uninstallTemplate(templateName) {
+  }
+
   getTemplates() {
     const uniqueTemplates = new Set();
     for (const template of Object.keys(this.templates)) {
