@@ -1,15 +1,21 @@
-module.exports = async ({ container, socket, data }) => {
-  const {email, password} = data
-  const { User } = container.get('database').models
-  const user = await User.findOne({ where: { email } })
+const { Handler } = require("zyket");
 
-  if(!user) return socket.emit("auth.login", { error: "User not found" })
-  if(!await user.isValidPassword(password)) return socket.emit("auth.login", { error: "Invalid password" })
+module.exports = class LoginHandler extends Handler {
+  middleware = [];
+  
+  async handle({ container, socket, data, io }) {
+    const {email, password} = data
+    const { User } = container.get('database').models
+    const user = await User.findOne({ where: { email } })
 
-  const token = await user.generateAuthToken()
+    if(!user) return socket.emit("auth.login", { error: "User not found" })
+    if(!await user.isValidPassword(password)) return socket.emit("auth.login", { error: "Invalid password" })
 
-  socket.user = user
-  socket.token = token
+    const token = await user.generateAuthToken()
 
-  socket.emit("auth.login", { ...user.toJSON(), token })
+    socket.user = user
+    socket.token = token
+
+    socket.emit("auth.login", { ...user.toJSON(), token })
+  }
 };

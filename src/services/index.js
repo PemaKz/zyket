@@ -4,7 +4,7 @@ const S3 = require("./s3");
 const { SocketIO } = require("./socketio");
 
 module.exports = [
-  ["logger", require("./Logger"), ["@service_container", process.env.LOG_DIRECTORY || `${process.cwd()}/logs`, process.env.DEBUG === "true"]],
+  ["logger", require("./logger"), ["@service_container", process.env.LOG_DIRECTORY || `${process.cwd()}/logs`, process.env.DEBUG === "true"]],
   ["template-manager", require("./template-manager"), []],
   process.env.DATABASE_URL ? ["database", Database, ["@service_container", process.env.DATABASE_URL]] : null,
   process.env.CACHE_URL ? ["cache", Cache, ["@service_container", process.env.CACHE_URL]] : null,
