@@ -114,7 +114,7 @@ module.exports = class SocketIO extends Service {
     this.io.close();
   }
 
-  sockets() {
+  get sockets() {
     return Object.keys(this.io.sockets.sockets).map((socketId) => {
       return this.io.sockets.sockets[socketId];
     });
