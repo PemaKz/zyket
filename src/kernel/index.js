@@ -2,15 +2,16 @@ const {ContainerBuilder} = require("node-dependency-injection");
 const EnvManager = require("../utils/EnvManager");
 const fs = require("fs");
 const path = require("path");
+const HTTPServer = require("./HTTPServer");
 
 module.exports = class Kernel {
   container;
   #services;
   #onSocketConnection;
+  #httpServer;
 
   constructor({ 
-    services = [],
-    onConnection = () => { },
+    services = []
   } = { }) {
     this.container = new ContainerBuilder();
     this.#services = services;
@@ -24,14 +25,20 @@ module.exports = class Kernel {
   async boot(clearConsole = true, secretsPath = `${process.cwd()}/.env`) {
     EnvManager.load(secretsPath, false);
     if(clearConsole) process.stdout.write("\u001b[2J\u001b[0;0H");
+    this.#httpServer = new HTTPServer({ port: Number(process.env.PORT) || 3000 });
+    await this.#httpServer.start();
+
     const services = require("../services");
 
     await this.#registerServices(services);
     await this.#registerServices(this.#services);
 
+
     for (const [name] of [...services, ...this.#services]) {
       this.container.get('logger').debug(`Booting service ${name}`);
-      await this.container.get(name).boot();
+      await this.container.get(name).boot({
+        httpServer: this.#httpServer.server,
+      });
     }
   }
 

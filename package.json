@@ -14,7 +14,9 @@
   "description": "",
   "dependencies": {
     "colors": "^1.4.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "express": "^5.1.0",
     "fast-glob": "^3.3.3",
     "mariadb": "^3.4.0",
     "minio": "^8.0.5",

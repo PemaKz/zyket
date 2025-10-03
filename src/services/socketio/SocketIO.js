@@ -8,18 +8,16 @@ const Middleware = require("./Middleware");
 
 
 module.exports = class SocketIO extends Service {
-  port;
   #container;
   io;
   middlewares = {};
   
-  constructor(container, port, onConnection = () => { }) {
+  constructor(container) {
     super("socketio");
-    this.port = port || 3000;
     this.#container = container;
   }
 
-  async boot() {
+  async boot({ httpServer } = {}) {
     const middlewares = await this.#loadMiddlewaresFromFolder(path.join(process.cwd(), "src", "middlewares"));
     for (const middleware of middlewares) {
       this.middlewares[middleware.name] = middleware;
@@ -59,8 +57,8 @@ module.exports = class SocketIO extends Service {
       });
     });
 
-    this.io.listen(this.port);
-    this.#container.get('logger').info(`Socket.IO is running on port ws://localhost:${this.port}`);
+    this.io.listen(httpServer);
+    this.#container.get('logger').info(`Socket.IO is running on ws://localhost:${httpServer.address().port}`);
   }
 
   async #loadConnectionHandler() {
