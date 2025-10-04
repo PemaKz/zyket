@@ -4,13 +4,13 @@ const fs = require("fs");
 const path = require("path");
 const fg = require('fast-glob');
 const Handler = require("./Handler");
-const Middleware = require("./Middleware");
+const Guard = require("./Guard");
 
 
 module.exports = class SocketIO extends Service {
   #container;
   io;
-  middlewares = {};
+  guards = {};
   
   constructor(container) {
     super("socketio");
@@ -18,39 +18,39 @@ module.exports = class SocketIO extends Service {
   }
 
   async boot({ httpServer } = {}) {
-    const middlewares = await this.#loadMiddlewaresFromFolder(path.join(process.cwd(), "src", "middlewares"));
-    for (const middleware of middlewares) {
-      this.middlewares[middleware.name] = middleware;
+    const guards = await this.#loadGuardsFromFolder(path.join(process.cwd(), "src", "guards"));
+    for (const guard of guards) {
+      this.guards[guard.name] = guard;
     }
     const handlers = await this.#loadHandlersFromFolder(path.join(process.cwd(), "src", "handlers"));
     const connectionHandler = new (await this.#loadConnectionHandler())();
 
 
-    this.#container.get('logger').debug(`Middlewares: ${middlewares.map(mdl => mdl.name).join(", ")}`);
+    this.#container.get('logger').debug(`Guards: ${guards.map(mdl => mdl.name).join(", ")}`);
     this.#container.get('logger').debug(`Handlers: ${handlers.map(hdl => hdl.event).join(", ")}`);
     
     this.io = new Server({ cors: { origin: "*" }, maxHttpBufferSize: 10 * 1024 * 1024 });
 
     this.io.on("connection", (socket) => {
-      const connectionMiddlewares = (connectionHandler?.middlewares || []).map(mdl => this.middlewares[mdl])
-      for (const middleware of connectionMiddlewares) {
-        if(!middleware) {
-          this.#container.get('logger').warn(`You are using a middleware that does not exist`);
+      const connectionGuards = (connectionHandler?.guards || []).map(mdl => this.guards[mdl])
+      for (const guard of connectionGuards) {
+        if(!guard) {
+          this.#container.get('logger').warn(`You are using a guard that does not exist`);
           continue;
         }
-        middleware.handle({ container: this.#container, socket, io: this.io });
+        guard.handle({ container: this.#container, socket, io: this.io });
       }
       connectionHandler.handle({ container: this.#container, socket, io: this.io });
       handlers.forEach((handler) => {
-        const handlerMiddlewares = (handler?.middlewares || []).map(mdl => this.middlewares[mdl])
+        const handlerGuards = (handler?.guards || []).map(mdl => this.guards[mdl])
         socket.on(handler.event, async (data) => {
-          this.#container.get('logger').debug(`[${socket?.id}] Sent ${handler.event} with middlewares: ${handlerMiddlewares?.map(mdl => mdl?.name).join(", ")}`);
-          for (const middleware of handlerMiddlewares) {
-            if(!middleware) {
-              this.#container.get('logger').warn(`You are using a middleware that does not exist`);
+          this.#container.get('logger').debug(`[${socket?.id}] Sent ${handler.event} with guards: ${handlerGuards?.map(mdl => mdl?.name).join(", ")}`);
+          for (const guard of handlerGuards) {
+            if(!guard) {
+              this.#container.get('logger').warn(`You are using a guard that does not exist`);
               continue;
             }
-            await middleware.handle({ container: this.#container, socket, io: this.io });
+            await guard.handle({ container: this.#container, socket, io: this.io });
           }
           return await handler.handle({ container: this.#container, socket, data, io: this.io });
         });
@@ -71,9 +71,7 @@ module.exports = class SocketIO extends Service {
 
   async #loadHandlersFromFolder(handlersFolder) {
     this.#createHandlersFolder(handlersFolder);
-    // need to read all files and subfolders
     const handlers = (await fg('**/*.js', { cwd: handlersFolder, ignore: 'connection.js' })).map((hdr) => {
-      // should be type handler
       const handler = require(path.join(handlersFolder, hdr));
       if(!(handler.prototype instanceof Handler)) throw new Error(`${hdr} is not a valid handler`);
       return new handler(hdr.replace('.js', ''));
@@ -88,24 +86,22 @@ module.exports = class SocketIO extends Service {
     this.#container.get('template-manager').installFile('default/src/handlers/message', path.join(handlersFolder, "message.js"));
   }
 
-  async #loadMiddlewaresFromFolder(middlewaresFolder) {
-    this.#createMiddlewaresFolder(middlewaresFolder);
-    // need to read all files and subfolders
-    const middlewares = await fg('**/*.js', { cwd: middlewaresFolder })
+  async #loadGuardsFromFolder(guardsFolder) {
+    this.#createGuardsFolder(guardsFolder);
+    const guards = await fg('**/*.js', { cwd: guardsFolder })
     
-    return middlewares.map((mdl) => {
-      // should be type middleware
-      const middleware = require(path.join(middlewaresFolder, mdl));
-      if(!(middleware.prototype instanceof Middleware)) throw new Error(`${mdl} is not a valid middleware`);
-      return new middleware(mdl.replace('.js', ''));
+    return guards.map((gd) => {
+      const guard = require(path.join(guardsFolder, gd));
+      if(!(guard.prototype instanceof Guard)) throw new Error(`${gd} is not a valid guard`);
+      return new guard(gd.replace('.js', ''));
     });
   }
 
-  #createMiddlewaresFolder(middlewaresFolder, overwrite = false) {
-    if (fs.existsSync(middlewaresFolder) && !overwrite) return;
-    this.#container.get('logger').info(`Creating middlewares folder at ${middlewaresFolder}`);
-    fs.mkdirSync(middlewaresFolder);
-    this.#container.get('template-manager').installFile('default/src/middlewares/default', path.join(middlewaresFolder, "default.js"));
+  #createGuardsFolder(guardsFolder, overwrite = false) {
+    if (fs.existsSync(guardsFolder) && !overwrite) return;
+    this.#container.get('logger').info(`Creating guards folder at ${guardsFolder}`);
+    fs.mkdirSync(guardsFolder);
+    this.#container.get('template-manager').installFile('default/src/guards/default', path.join(guardsFolder, "default.js"));
   }
 
   stop() {

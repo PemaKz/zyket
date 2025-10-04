@@ -1,2 +1,7 @@
-export default class Route {
+module.exports = class Route {
+  path;
+
+  constructor(_path) {
+    this.path = _path;
+  }
 }

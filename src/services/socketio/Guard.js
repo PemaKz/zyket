@@ -1,4 +1,4 @@
-module.exports = class Middleware {
+module.exports = class Guard {
   name;
   
   constructor(name) {

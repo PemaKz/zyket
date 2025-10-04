@@ -15,6 +15,8 @@ module.exports = class EnvManager {
     const envsToCreate = {
       DEBUG: true,
       PORT: 3000,
+      DISABLE_SOCKET: false,
+      DISABLE_EXPRESS: false,
       DATABASE_URL: '',
       CACHE_URL: '',
       S3_ENDPOINT: '',
