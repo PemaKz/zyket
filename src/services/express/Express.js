@@ -34,14 +34,13 @@ module.exports = class Express extends Service {
     const routes = await this.#loadRoutesFromFolder(path.join(process.cwd(), "src", "routes"));
 
     routes.forEach((route) => {
-      const { post, get } = route;
-      for (const method of [post, get]) {
+      const methods = ['post', 'get', 'put', 'delete']
+      for (const methodName of methods) {
+        const method = route[methodName];
         if(!method) continue;
-        const methodName = method === post ? 'post' : 'get';
         this.#container.get('logger').debug(`Registering route: [${methodName}] ${route.path}`);
         const middlewares = route?.middlewares?.[methodName] || [];
         for (const mw of middlewares) {
-          // mw is instance of Middleware
           if (!(mw instanceof Middleware)) {
             throw new Error(`Middleware for route ${route.path} is not an instance of Middleware`);
           }
