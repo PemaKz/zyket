@@ -24,7 +24,8 @@ module.exports = class EnvManager {
       S3_USE_SSL: true,
       S3_ACCESS_KEY: '',
       S3_SECRET_KEY: '',
-      LOG_DIRECTORY: "./logs"
+      LOG_DIRECTORY: "./logs",
+      QUEUES: '',
     }
 
     return Object.entries(envsToCreate).reduce((acc, [key, value]) => {
