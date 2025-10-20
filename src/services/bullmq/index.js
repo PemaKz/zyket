@@ -21,7 +21,7 @@ module.exports = class BullMQ extends Service  {
     for (const queueName of queusConfig) {
       this.queues[queueName] = new Queue(queueName, this.#connection());
       this.queuesEvents[queueName] = new QueueEvents(queueName, this.#connection());
-      await this.#container.loggfer.info(`Queue ${queueName} initialized`);
+      await this.#container.get('logger').info(`Queue ${queueName} initialized`);
     }
 
     const workers = await this.#loadWorkersFromFolder(path.join(process.cwd(), "src", "workers"));
@@ -68,7 +68,7 @@ module.exports = class BullMQ extends Service  {
   #connection() {
     return {
         connection: {
-          url: process.env.REDIS_URL || "redis://localhost:6379"
+          url: process.env.CACHE_URL || "redis://localhost:6379"
         }
     };
   }

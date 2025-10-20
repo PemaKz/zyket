@@ -6,6 +6,7 @@ const {Route, Middleware} = require("./src/services/express");
 const { Handler, Guard } = require("./src/services/socketio");
 const Schedule = require("./src/services/scheduler/Schedule");
 const Event = require("./src/services/events/Event");
+const Worker = require("./src/services/bullmq/Worker");
 
 
 module.exports = {
@@ -13,5 +14,6 @@ module.exports = {
   Route, Middleware,
   Handler, Guard,
   Schedule, Event,
+  Worker,
   EnvManager
 }
