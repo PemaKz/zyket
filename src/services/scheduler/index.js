@@ -17,7 +17,13 @@ module.exports = class Scheduler extends Service  {
     const schedulers = await this.#loadSchedulersFromFolder(path.join(process.cwd(), "src", "schedulers"));
     await this.#container.get('logger').info(`Loaded ${schedulers.length} schedulers`);
     for (const schd of schedulers) {
-      cron.schedule(schd.time, () => schd.handle({ container: this.#container }));
+      cron.schedule(schd.time, () => {
+        try {
+          schd.handle({ container: this.#container })
+        } catch (e) {
+          this.#container.get('logger').error(`Error executing scheduler ${schd.name}: ${e.message}`);
+        }
+      });
       this.#container.get('logger').info(`Scheduler ${schd.name}, ${schd.time} initialized`);
     }
   }
