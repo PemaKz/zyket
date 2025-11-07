@@ -43,7 +43,7 @@ module.exports = class SocketIO extends Service {
       connectionHandler.handle({ container: this.#container, socket, io: this.io });
       handlers.forEach((handler) => {
         const handlerGuards = (handler?.guards || []).map(mdl => this.guards[mdl])
-        socket.on(handler.event, async (data) => {
+        socket.on(handler.event, async (data, callback) => {
           this.#container.get('logger').debug(`[${socket?.id}] Sent ${handler.event} with guards: ${handlerGuards?.map(mdl => mdl?.name).join(", ")}`);
           for (const guard of handlerGuards) {
             if(!guard) {
@@ -51,6 +51,9 @@ module.exports = class SocketIO extends Service {
               continue;
             }
             await guard.handle({ container: this.#container, socket, io: this.io });
+          }
+          if(callback && typeof callback === 'function') {
+            return callback(await handler.handle({ container: this.#container, socket, data, io: this.io }));
           }
           return await handler.handle({ container: this.#container, socket, data, io: this.io });
         });
