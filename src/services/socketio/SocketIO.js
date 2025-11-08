@@ -57,10 +57,15 @@ module.exports = class SocketIO extends Service {
               return callback ? callback({ error: e.message }) : null;
             }
           }
-          if(callback && typeof callback === 'function') {
-            return callback(await handler.handle({ container: this.#container, socket, data, io: this.io }));
+          try{
+            if(callback && typeof callback === 'function') {
+              return callback(await handler.handle({ container: this.#container, socket, data, io: this.io }));
+            }
+            return await handler.handle({ container: this.#container, socket, data, io: this.io });
+          } catch(e) {
+            this.#container.get('logger').error(`Error handling event ${handler.event} from socket ${socket.id}: ${e.message}`);
+            return callback ? callback({ error: e.message }) : null;
           }
-          return await handler.handle({ container: this.#container, socket, data, io: this.io });
         });
       });
     });
