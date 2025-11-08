@@ -13,19 +13,19 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "bullmq": "^5.61.0",
+    "bullmq": "^5.63.0",
     "colors": "^1.4.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "fast-glob": "^3.3.3",
-    "mariadb": "^3.4.0",
-    "minio": "^8.0.5",
+    "mariadb": "^3.4.5",
+    "minio": "^8.0.6",
     "node-cron": "^4.2.1",
-    "node-dependency-injection": "^3.2.2",
+    "node-dependency-injection": "^3.2.4",
     "prompts": "^2.4.2",
-    "redis": "^4.7.0",
-    "sequelize": "^6.37.6",
+    "redis": "^5.9.0",
+    "sequelize": "^6.37.7",
     "socket.io": "^4.8.1"
   }
 }

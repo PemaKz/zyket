@@ -50,7 +50,12 @@ module.exports = class SocketIO extends Service {
               this.#container.get('logger').warn(`You are using a guard that does not exist`);
               continue;
             }
-            await guard.handle({ container: this.#container, socket, io: this.io });
+            try{
+              await guard.handle({ container: this.#container, socket, io: this.io });
+            } catch(e) {
+              this.#container.get('logger').warn(`Guard ${guard.name} blocked event ${handler.event} from socket ${socket.id}: ${e.message}`);
+              return callback ? callback({ error: e.message }) : null;
+            }
           }
           if(callback && typeof callback === 'function') {
             return callback(await handler.handle({ container: this.#container, socket, data, io: this.io }));
