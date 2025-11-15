@@ -95,4 +95,8 @@ module.exports = class Express extends Service {
     fs.mkdirSync(path.join(process.cwd(), "src", "middlewares"));
     this.#container.get('template-manager').installFile('default/src/middlewares/default', path.join(process.cwd(), "src", "middlewares", "default.js"));
   }
+
+  app() {
+    return this.#app;
+  }
 }
