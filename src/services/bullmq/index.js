@@ -48,9 +48,12 @@ module.exports = class BullMQ extends Service  {
     this.#createWorkersFolder(workersFolder);
     const workers = (await fg('**/*.js', { cwd: workersFolder })).map((wkr) => {
       const worker = require(path.join(workersFolder, wkr));
-      if(!(worker.prototype instanceof Worker)) throw new Error(`${wkr} is not a valid handler`);
+      if(!(worker.prototype instanceof Worker)) {
+        this.#container.get('logger').warn(`File ${wkr} does not export a valid Worker class, skipping...`);
+        return null;
+      }
       return new worker(wkr.replace('.js', ''));
-    });
+    }).filter(wkr => wkr !== null);
     return workers;
   }
 
