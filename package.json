@@ -26,6 +26,8 @@
     "prompts": "^2.4.2",
     "redis": "^5.9.0",
     "sequelize": "^6.37.7",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }
