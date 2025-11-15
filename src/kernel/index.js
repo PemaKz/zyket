@@ -40,6 +40,8 @@ module.exports = class Kernel {
         httpServer: this.#httpServer.server,
       });
     }
+
+    return this;
   }
 
   async #registerServices(servicesToRegister = []) {
