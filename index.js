@@ -2,7 +2,7 @@ const Kernel = require("./src/kernel");
 const Service = require("./src/services/Service");
 const EnvManager = require("./src/utils/EnvManager");
 
-const {Route, Middleware} = require("./src/services/express");
+const {Route, Middleware, Express} = require("./src/services/express");
 const { Handler, Guard } = require("./src/services/socketio");
 const Schedule = require("./src/services/scheduler/Schedule");
 const Event = require("./src/services/events/Event");
@@ -10,6 +10,7 @@ const Worker = require("./src/services/bullmq/Worker");
 
 
 module.exports = {
+  Express,
   Kernel, Service,
   Route, Middleware,
   Handler, Guard,
