@@ -50,7 +50,6 @@ module.exports = class Express extends Service {
       ...Express.swaggerConfig,
       apis: [path.join(process.cwd(), "src", "routes", "**", "*.js")],
     };
-    console.log("Swagger Options:", swaggerOptions);
     const swaggerDocs = swaggerJsDoc(swaggerOptions);
     this.#app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
@@ -71,7 +70,14 @@ module.exports = class Express extends Service {
         
         this.#app[methodName](
           route.path, 
-          ...middlewares.map(mw => (req, res, next) => mw.handle({ container: this.#container, request: req, response: res, next })), 
+          ...middlewares.map(mw => async (req, res, next) => {
+            try { 
+              await mw.handle({ container: this.#container, request: req, response: res, next })
+            } catch (error) {
+              this.#container.get('logger').error(`Error in middleware for route [${methodName}] ${route.path}: ${error.message}`);
+              return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
+            }
+          }), 
           async (req, res) => {
             try {
               const routeResponse = await route[methodName]({ container: this.#container, request: req, response: res });
