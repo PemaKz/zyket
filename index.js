@@ -9,6 +9,7 @@ const Event = require("./src/services/events/Event");
 const Worker = require("./src/services/bullmq/Worker");
 const BullBoardExtension = require("./src/extensions/bullboard");
 const Extension = require("./src/extensions/Extension");
+const InteractiveStorageExtension = require("./src/extensions/interactive-storage");
 
 
 module.exports = {
@@ -19,5 +20,6 @@ module.exports = {
   Schedule, Event,
   Worker,
   EnvManager,
-  BullBoardExtension, Extension
+  BullBoardExtension, InteractiveStorageExtension,
+  Extension
 }

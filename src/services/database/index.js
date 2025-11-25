@@ -57,6 +57,24 @@ module.exports = class Database extends Service {
     }
   }
 
+  async loadModel(model) {
+    if (typeof model !== 'function') {
+      this.#container.get('logger').error(`Model ${model} is not a function`);
+      throw new Error(`Model ${model} is not a function`);
+    }
+
+    const modelInstance = model({sequelize: this.sequelize, container: this.#container, Sequelize});
+    if(this.models[modelInstance.name]) {
+      this.#container.get('logger').warn(`Model ${modelInstance.name} is already loaded, cannot load it again`);
+      throw new Error(`Model ${modelInstance.name} is already loaded, cannot load it again`);
+    }
+    this.models[modelInstance.name] = modelInstance;
+
+    if (modelInstance.associate) {
+      modelInstance.associate(this.models);
+    }
+  }
+
   #createModelsFolder() {
     const path = 'src/models';
     if (!fs.existsSync(path)) fs.mkdirSync(path);
