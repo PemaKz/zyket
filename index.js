@@ -7,6 +7,8 @@ const { Handler, Guard } = require("./src/services/socketio");
 const Schedule = require("./src/services/scheduler/Schedule");
 const Event = require("./src/services/events/Event");
 const Worker = require("./src/services/bullmq/Worker");
+const BullBoardExtension = require("./src/extensions/bullboard");
+const Extension = require("./src/extensions/Extension");
 
 
 module.exports = {
@@ -16,5 +18,6 @@ module.exports = {
   Handler, Guard,
   Schedule, Event,
   Worker,
-  EnvManager
+  EnvManager,
+  BullBoardExtension, Extension
 }

@@ -3,18 +3,22 @@ const EnvManager = require("../utils/EnvManager");
 const fs = require("fs");
 const path = require("path");
 const HTTPServer = require("./HTTPServer");
+const Extension = require("../extensions/Extension");
 
 module.exports = class Kernel {
   container;
   #services;
   #onSocketConnection;
   #httpServer;
+  #extensions = [];
 
   constructor({ 
-    services = []
+    services = [],
+    extensions = [],
   } = { }) {
     this.container = new ContainerBuilder();
     this.#services = services;
+    this.#extensions = extensions;
 
     // create src folder if not exists
     if (!fs.existsSync(path.join(process.cwd(), "src"))) {
@@ -41,6 +45,16 @@ module.exports = class Kernel {
       });
     }
 
+    for (const extension of this.#extensions) {
+      if (!(extension instanceof Extension)) {
+        throw new Error(`Extension ${extension.name} is not an instance of Extension class`);
+      }
+      this.container.get('logger').debug(`Loading extension ${extension.name}`);
+      await extension.load(this.container);
+    }
+
+
+
     return this;
   }
 
@@ -57,5 +71,9 @@ module.exports = class Kernel {
     }
 
     this.container.compile();
+  }
+
+  async #loadExtensions() {
+    // Load extensions if any
   }
 }
