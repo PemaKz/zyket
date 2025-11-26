@@ -1,4 +1,4 @@
-const { Sequelize } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
 const Service = require("../Service");
 const fg = require('fast-glob');
 const fs = require('fs');
@@ -8,6 +8,9 @@ module.exports = class Database extends Service {
   #container;
   #databaseUrl;
   sequelize
+  Op = Op;
+  Sequelize = Sequelize;
+  
   models = {}
 
   constructor(container, databaseUrl) {
