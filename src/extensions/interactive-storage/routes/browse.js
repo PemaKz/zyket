@@ -1,18 +1,31 @@
-module.exports = (s3, bucketName, logger, normalizePath, listFilesAndFolders) => async (req, res) => {
-  try {
-    const folder = req.query.folder || '';
-    const prefix = folder ? normalizePath(folder) + '/' : '';
+const { Route } = require('../../../services/express');
+
+module.exports = class BrowseRoute extends Route {
+  s3;
+  bucketName;
+  normalizePath;
+  listFilesAndFolders;
+
+  constructor(path, s3, bucketName, normalizePath, listFilesAndFolders) {
+    super(path);
+    this.s3 = s3;
+    this.bucketName = bucketName;
+    this.normalizePath = normalizePath;
+    this.listFilesAndFolders = listFilesAndFolders;
+  }
+
+  async get({ container, request }) {
+    const logger = container.get('logger');
+    const folder = request.query.folder || '';
+    const prefix = folder ? this.normalizePath(folder) + '/' : '';
     
-    const items = await listFilesAndFolders(s3, prefix);
+    const items = await this.listFilesAndFolders(this.s3, prefix);
     
-    res.json({
+    return {
       success: true,
-      bucket: bucketName,
+      bucket: this.bucketName,
       currentPath: folder,
       items: items
-    });
-  } catch (error) {
-    logger.error(`Error browsing files: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message });
+    };
   }
 };

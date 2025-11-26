@@ -1,26 +1,37 @@
-module.exports = (s3, bucketName, logger, normalizePath) => async (req, res) => {
-  try {
-    const { folderPath } = req.body;
+const { Route } = require('../../../services/express');
+
+module.exports = class CreateFolderRoute extends Route {
+  s3;
+  bucketName;
+  normalizePath;
+
+  constructor(path, s3, bucketName, normalizePath) {
+    super(path);
+    this.s3 = s3;
+    this.bucketName = bucketName;
+    this.normalizePath = normalizePath;
+  }
+
+  async post({ container, request }) {
+    const logger = container.get('logger');
+    const { folderPath } = request.body;
     
     if (!folderPath) {
-      return res.status(400).json({ success: false, message: 'Folder path is required' });
+      return { success: false, message: 'Folder path is required', status: 400 };
     }
 
-    const normalizedPath = normalizePath(folderPath);
+    const normalizedPath = this.normalizePath(folderPath);
     const folderMarker = `${normalizedPath}/.folder`;
     
     // Create an empty marker file to represent the folder
-    await s3.saveFile(bucketName, folderMarker, Buffer.from(''), 'text/plain');
+    await this.s3.saveFile(this.bucketName, folderMarker, Buffer.from(''), 'text/plain');
     
     logger.info(`Created folder: ${normalizedPath}`);
     
-    res.json({
+    return {
       success: true,
       message: 'Folder created successfully',
       folderPath: normalizedPath
-    });
-  } catch (error) {
-    logger.error(`Error creating folder: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message });
+    };
   }
 };

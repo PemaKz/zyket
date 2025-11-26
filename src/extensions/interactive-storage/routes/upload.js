@@ -1,15 +1,30 @@
-module.exports = (s3, bucketName, logger, normalizePath) => async (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: 'No files uploaded' });
+const { Route } = require('../../../services/express');
+
+module.exports = class UploadRoute extends Route {
+  s3;
+  bucketName;
+  normalizePath;
+
+  constructor(path, s3, bucketName, normalizePath) {
+    super(path);
+    this.s3 = s3;
+    this.bucketName = bucketName;
+    this.normalizePath = normalizePath;
+  }
+
+  async post({ container, request }) {
+    const logger = container.get('logger');
+    
+    if (!request.files || request.files.length === 0) {
+      return { success: false, message: 'No files uploaded', status: 400 };
     }
 
-    const folder = req.body.folder || '';
-    const folderPath = folder ? normalizePath(folder) + '/' : '';
+    const folder = request.body.folder || '';
+    const folderPath = folder ? this.normalizePath(folder) + '/' : '';
 
-    const uploadPromises = req.files.map(async (file) => {
+    const uploadPromises = request.files.map(async (file) => {
       const fileName = `${folderPath}${Date.now()}-${file.originalname}`;
-      await s3.saveFile(bucketName, fileName, file.buffer, file.mimetype);
+      await this.s3.saveFile(this.bucketName, fileName, file.buffer, file.mimetype);
       return {
         originalName: file.originalname,
         fileName: fileName,
@@ -22,13 +37,10 @@ module.exports = (s3, bucketName, logger, normalizePath) => async (req, res) => 
     const uploadedFiles = await Promise.all(uploadPromises);
     logger.info(`Uploaded ${uploadedFiles.length} file(s) to S3 dropbox`);
 
-    res.json({
+    return {
       success: true,
       message: 'Files uploaded successfully',
       files: uploadedFiles
-    });
-  } catch (error) {
-    logger.error(`Error uploading files: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message });
+    };
   }
 };

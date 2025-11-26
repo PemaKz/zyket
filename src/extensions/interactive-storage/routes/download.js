@@ -1,30 +1,47 @@
-module.exports = (s3, bucketName, logger, getFileStat) => async (req, res) => {
-  try {
-    const { fileName } = req.params;
-    
-    // Get file info first
-    const stat = await getFileStat(s3, fileName);
-    
-    // Set response headers
-    res.setHeader('Content-Type', stat.metaData?.['content-type'] || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    res.setHeader('Content-Length', stat.size);
+const { Route } = require('../../../services/express');
 
-    // Stream the file
-    await new Promise((resolve, reject) => {
-      s3.client.getObject(bucketName, fileName, (err, stream) => {
-        if (err) return reject(err);
-        stream.pipe(res);
-        stream.on('end', resolve);
-        stream.on('error', reject);
+module.exports = class DownloadRoute extends Route {
+  s3;
+  bucketName;
+  getFileStat;
+
+  constructor(path, s3, bucketName, getFileStat) {
+    super(path);
+    this.s3 = s3;
+    this.bucketName = bucketName;
+    this.getFileStat = getFileStat;
+  }
+
+  async get({ container, request, response }) {
+    const logger = container.get('logger');
+    const { fileName } = request.params;
+    
+    try {
+      // Get file info first
+      const stat = await this.getFileStat(this.s3, fileName);
+      
+      // Set response headers
+      response.setHeader('Content-Type', stat.metaData?.['content-type'] || 'application/octet-stream');
+      response.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      response.setHeader('Content-Length', stat.size);
+
+      // Stream the file
+      await new Promise((resolve, reject) => {
+        this.s3.client.getObject(this.bucketName, fileName, (err, stream) => {
+          if (err) return reject(err);
+          stream.pipe(response);
+          stream.on('end', resolve);
+          stream.on('error', reject);
+        });
       });
-    });
 
-    logger.info(`Downloaded file: ${fileName}`);
-  } catch (error) {
-    logger.error(`Error downloading file: ${error.message}`);
-    if (!res.headersSent) {
-      res.status(404).json({ success: false, message: 'File not found' });
+      logger.info(`Downloaded file: ${fileName}`);
+      
+      // Return null to indicate response was handled manually
+      return null;
+    } catch (error) {
+      logger.error(`Error downloading file: ${error.message}`);
+      return { success: false, message: 'File not found', status: 404 };
     }
   }
 };

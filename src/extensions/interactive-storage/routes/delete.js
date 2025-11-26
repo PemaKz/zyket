@@ -1,16 +1,28 @@
-module.exports = (s3, bucketName, logger) => async (req, res) => {
-  try {
-    const { fileName, fileNames } = req.body;
+const { Route } = require('../../../services/express');
+
+module.exports = class DeleteRoute extends Route {
+  s3;
+  bucketName;
+
+  constructor(path, s3, bucketName) {
+    super(path);
+    this.s3 = s3;
+    this.bucketName = bucketName;
+  }
+
+  async delete({ container, request }) {
+    const logger = container.get('logger');
+    const { fileName, fileNames } = request.body;
     
     // Support both single file and multiple files
     const filesToDelete = fileNames || (fileName ? [fileName] : []);
     
     if (!Array.isArray(filesToDelete) || filesToDelete.length === 0) {
-      return res.status(400).json({ success: false, message: 'fileName or fileNames array is required' });
+      return { success: false, message: 'fileName or fileNames array is required', status: 400 };
     }
 
     const deletePromises = filesToDelete.map(file => 
-      s3.removeFile(bucketName, file).catch(err => ({ error: err.message, fileName: file }))
+      this.s3.removeFile(this.bucketName, file).catch(err => ({ error: err.message, fileName: file }))
     );
 
     const results = await Promise.all(deletePromises);
@@ -19,14 +31,11 @@ module.exports = (s3, bucketName, logger) => async (req, res) => {
 
     logger.info(`Deleted ${successCount} file(s) from S3 dropbox`);
 
-    res.json({
+    return {
       success: errors.length === 0,
       message: `Deleted ${successCount} of ${filesToDelete.length} file(s)`,
       deletedCount: successCount,
       errors: errors.length > 0 ? errors : undefined
-    });
-  } catch (error) {
-    logger.error(`Error deleting files: ${error.message}`);
-    res.status(500).json({ success: false, message: error.message });
+    };
   }
 };

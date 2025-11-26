@@ -94,9 +94,55 @@ module.exports = class Express extends Service {
         }
     });
 
+    // Attach Express to HTTP server - this allows dynamic route registration
+    this.#httpServer.removeAllListeners("request");
     this.#httpServer.on("request", this.#app);
 
     this.#container.get('logger').info(`Express is running on http://localhost:${httpServer.address().port}`);
+  }
+
+  async registerRoutes(routes) {
+    const methods = ['post', 'get', 'put', 'delete']
+    for (const route of routes) {
+      for (const methodName of methods) {
+        const method = route[methodName];
+        if(!method) continue;
+        this.#container.get('logger').debug(`Registering route: [${methodName}] ${route.path}`);
+        const middlewares = route?.middlewares?.[methodName] || [];
+        for (const mw of middlewares) {
+          if (!(mw instanceof Middleware)) {
+            throw new Error(`Middleware for route ${route.path} is not an instance of Middleware`);
+          }
+        }
+        this.#app[methodName](
+          route.path, 
+          ...middlewares.map(mw => async (req, res, next) => {
+            try { 
+              await mw.handle({ container: this.#container, request: req, response: res, next })
+            } catch (error) {
+              this.#container.get('logger').error(`Error in middleware for route [${methodName}] ${route.path}: ${error.message}`);
+              return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
+            }
+          }),
+          async (req, res) => {
+            try {
+              const routeResponse = await route[methodName]({ container: this.#container, request: req, response: res });
+              const status = routeResponse?.status || 200;
+              return res.status(status).json({
+                ...routeResponse,
+                success: routeResponse?.success !== false,
+              });
+            } catch (error) {
+              this.#container.get('logger').error(`Error in route [${methodName}] ${route.path}: ${error.message}`);
+              return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
+            }
+          });
+      }
+    }
+    
+    this.#httpServer.removeAllListeners("request");
+    this.#httpServer.on("request", this.#app);
+
   }
 
   async #loadRoutesFromFolder(routesFolder) {
