@@ -82,7 +82,10 @@ module.exports = class Database extends Service {
   async runMigrations(migrationsPath = 'src/migrations') {
     const umzug = new Umzug({
       migrations: { glob: `${migrationsPath}/*.js` },
-      context: this.#container.get('database').sequelize.getQueryInterface(),
+      context: {
+        queryInterface: this.#container.get('database').sequelize.getQueryInterface(),
+        container: this.#container
+      },
       storage: new SequelizeStorage({ sequelize: this.#container.get('database').sequelize }),
       logger: console
     })
