@@ -79,7 +79,7 @@ module.exports = class Database extends Service {
     }
   }
 
-  async runMigrations(migrationsPath = 'src/migrations') {
+  async runMigrations(migrationsPath = 'src/models/migrations') {
     const umzug = new Umzug({
       migrations: { glob: `${migrationsPath}/*.js` },
       context: {
