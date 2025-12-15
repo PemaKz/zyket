@@ -3,6 +3,7 @@ const Service = require("../Service");
 const fg = require('fast-glob');
 const fs = require('fs');
 const path = require('path');
+const { Umzug, SequelizeStorage } = require('umzug')
 
 module.exports = class Database extends Service {
   #container;
@@ -76,6 +77,17 @@ module.exports = class Database extends Service {
     if (modelInstance.associate) {
       modelInstance.associate(this.models);
     }
+  }
+
+  async runMigrations(migrationsPath = 'src/migrations') {
+    const umzug = new Umzug({
+      migrations: { glob: `${migrationsPath}/*.js` },
+      context: this.#container.get('database').sequelize.getQueryInterface(),
+      storage: new SequelizeStorage({ sequelize: this.#container.get('database').sequelize }),
+      logger: console
+    })
+
+    return await umzug.up()
   }
 
   #createModelsFolder() {
