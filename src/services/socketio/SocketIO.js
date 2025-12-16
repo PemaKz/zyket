@@ -31,7 +31,7 @@ module.exports = class SocketIO extends Service {
     
     this.io = new Server({ cors: { origin: "*" }, maxHttpBufferSize: 10 * 1024 * 1024 });
 
-    this.io.on("connection", (socket) => {
+    this.io.on("connection", async (socket) => {
       const connectionGuards = (connectionHandler?.guards || []).map(mdl => this.guards[mdl])
       for (const guard of connectionGuards) {
         if(!guard) {
@@ -40,7 +40,13 @@ module.exports = class SocketIO extends Service {
         }
         guard.handle({ container: this.#container, socket, io: this.io });
       }
-      connectionHandler.handle({ container: this.#container, socket, io: this.io });
+      try {
+        await connectionHandler.handle({ container: this.#container, socket, io: this.io });
+      } catch(e) {
+        this.#container.get('logger').error(`Error in connection handler for socket ${socket.id}: ${e.message}`);
+        socket.disconnect(true);
+        return;
+      }
       handlers.forEach((handler) => {
         const handlerGuards = (handler?.guards || []).map(mdl => this.guards[mdl])
         socket.on(handler.event, async (data, callback) => {
