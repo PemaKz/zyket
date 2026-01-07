@@ -102,4 +102,8 @@ module.exports = class Database extends Service {
     return this.sequelize.sync();
   }
 
+  forceSync() {
+    return this.sequelize.sync({ force: true });
+  }
+
 }
