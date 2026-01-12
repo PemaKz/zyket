@@ -81,6 +81,15 @@ module.exports = class Express extends Service {
           async (req, res) => {
             try {
               const routeResponse = await route[methodName]({ container: this.#container, request: req, response: res });
+              
+              // Check if response is a buffer (file download)
+              if (Buffer.isBuffer(routeResponse)) {
+                const filename = req.query.filename || 'download';
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.setHeader('Content-Type', 'application/octet-stream');
+                return res.send(routeResponse);
+              }
+              
               const status = routeResponse?.status || 200;
               return res.status(status).json({
                 ...routeResponse,
@@ -127,6 +136,15 @@ module.exports = class Express extends Service {
           async (req, res) => {
             try {
               const routeResponse = await route[methodName]({ container: this.#container, request: req, response: res });
+              
+              // Check if response is a buffer (file download)
+              if (Buffer.isBuffer(routeResponse)) {
+                const filename = req.query.filename || 'download';
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.setHeader('Content-Type', 'application/octet-stream');
+                return res.send(routeResponse);
+              }
+              
               const status = routeResponse?.status || 200;
               return res.status(status).json({
                 ...routeResponse,
