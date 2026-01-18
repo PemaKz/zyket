@@ -160,7 +160,13 @@ module.exports = class Express extends Service {
     
     this.#httpServer.removeAllListeners("request");
     this.#httpServer.on("request", this.#app);
+  }
 
+  async regiterRawAllRoutes(path, handler) {
+    this.#app.all(path, handler);
+
+    this.#httpServer.removeAllListeners("request");
+    this.#httpServer.on("request", this.#app);
   }
 
   async #loadRoutesFromFolder(routesFolder) {
