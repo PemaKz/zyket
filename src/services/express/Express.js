@@ -41,9 +41,10 @@ module.exports = class Express extends Service {
     this.#app = express();
 
     this.#app.use(express.json({ limit: `100mb` }))
-    this.#app.use(cors({
-      origin: '*'
-    }));
+
+    const corsOptions = await this.#loadCorsOrCreateDefault();
+
+    this.#app.use(cors(corsOptions));
 
     // Swagger setup
     const swaggerOptions = {
@@ -167,6 +168,21 @@ module.exports = class Express extends Service {
 
     this.#httpServer.removeAllListeners("request");
     this.#httpServer.on("request", this.#app);
+  }
+
+  async #loadCorsOrCreateDefault() {
+    let corsOptions = {};
+    const corsConfigPath = path.join(process.cwd(), "config", "cors.js");
+    if (fs.existsSync(corsConfigPath)) {
+      this.#container.get('logger').info("Loading CORS configuration from config/cors.js");
+      corsOptions = require(corsConfigPath);
+    } else {
+      this.#container.get('logger').info("No CORS configuration found. Creating default config/cors.js");
+      fs.mkdirSync(path.join(process.cwd(), "config"), { recursive: true });
+      this.#container.get('template-manager').installFile('default/config/cors', corsConfigPath);
+      corsOptions = { origin: '*' };
+    }
+    return corsOptions;
   }
 
   async #loadRoutesFromFolder(routesFolder) {
