@@ -11,6 +11,7 @@ const BullBoardExtension = require("./src/extensions/bullboard");
 const Extension = require("./src/extensions/Extension");
 const InteractiveStorageExtension = require("./src/extensions/interactive-storage");
 const AuthService = require("./src/services/auth");
+const MulterMiddleware = require("./src/extensions/interactive-storage/middlewares/MulterMiddleware");
 
 
 module.exports = {
@@ -23,5 +24,6 @@ module.exports = {
   EnvManager,
   BullBoardExtension, InteractiveStorageExtension,
   Extension,
-  AuthService
+  AuthService,
+  MulterMiddleware
 }
