@@ -1,4 +1,4 @@
-const { Service } = require('../Service');
+const Service = require('../Service');
 const { toNodeHandler } = require('better-auth/node');
 const { betterAuth } = require("better-auth");
 const { admin, bearer, organization } = require("better-auth/plugins");
