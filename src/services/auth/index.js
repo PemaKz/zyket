@@ -17,7 +17,7 @@ module.exports = class AuthService extends Service {
     if(process.env.DATABASE_DIALECT !== 'postgresql') throw new Error("AuthService only supports PostgreSQL as database dialect");
     this.client = this.auth;
     const express = this.#container.get('express');
-    express.regiterRawAllRoutes("/api/*splat", toNodeHandler(this.auth));
+    express.regiterRawAllRoutes("/api/auth/*splat", toNodeHandler(this.auth));
   }
 
   get plugins() {
