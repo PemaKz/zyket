@@ -10,6 +10,7 @@ const Worker = require("./src/services/bullmq/Worker");
 const BullBoardExtension = require("./src/extensions/bullboard");
 const Extension = require("./src/extensions/Extension");
 const InteractiveStorageExtension = require("./src/extensions/interactive-storage");
+const AuthService = require("./src/services/auth");
 
 
 module.exports = {
@@ -21,5 +22,6 @@ module.exports = {
   Worker,
   EnvManager,
   BullBoardExtension, InteractiveStorageExtension,
-  Extension
+  Extension,
+  AuthService
 }
