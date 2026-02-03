@@ -44,6 +44,21 @@ module.exports = class BullMQ extends Service  {
     }
   }
 
+  async addJob(queueName, jobName, data, opts = {}, waitForCompletion = false) {
+    if (!this.queues[queueName]) throw new Error(`Queue ${queueName} not found`);
+    const job = await this.queues[queueName].add(jobName, data, opts);
+    if (!waitForCompletion) return job;
+
+    return new Promise((resolve, reject) => {
+      const queueEvent = this.queuesEvents[queueName];
+      job.waitUntilFinished(queueEvent, 1000 * 60).then((result) => {
+        resolve(result);
+      }).catch((err) => {
+        reject(err);
+      });
+    });
+  }
+
   async #loadWorkersFromFolder(workersFolder) {
     this.#createWorkersFolder(workersFolder);
     const workers = (await fg('**/*.js', { cwd: workersFolder })).map((wkr) => {
