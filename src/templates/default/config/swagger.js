@@ -1,8 +1,8 @@
 const path = require("path");
 
 module.exports = {
-  openapi: '3.0.0',
   swaggerDefinition: {
+    openapi: '3.0.0',
     info: {
       title: "API Documentation",
       version: require(path.join(process.cwd(), "package.json")).version || "1.0.0",

@@ -210,8 +210,8 @@ module.exports = class Express extends Service {
       fs.mkdirSync(path.join(process.cwd(), "config"), { recursive: true });
       this.#container.get('template-manager').installFile('default/config/swagger', swaggerConfigPath);
       swaggerOptions = {
-        openapi: '3.0.0',
         swaggerDefinition: {
+          openapi: '3.0.0',
           info: {
             title: "API Documentation",
             version: require(path.join(process.cwd(), "package.json")).version || "1.0.0",
