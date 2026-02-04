@@ -10,5 +10,6 @@ module.exports = {
     servers: [
       { url: `http://localhost:3000` }
     ],
-  }
+  },
+  apis: [path.join(process.cwd(), "src", "routes", "**", "*.js")]
 }

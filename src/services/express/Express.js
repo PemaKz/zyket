@@ -37,7 +37,6 @@ module.exports = class Express extends Service {
     // Swagger setup
     const swaggerOptions = {
       ...(await this.#loadSwaggerOrCreateDefault()),
-      apis: [path.join(process.cwd(), "src", "routes", "**", "*.js")],
     };
 
     const swaggerDocs = swaggerJsDoc(swaggerOptions);
@@ -220,7 +219,8 @@ module.exports = class Express extends Service {
           servers: [
             { url: `http://localhost:3000` }
           ],
-        }
+        },
+        apis: [path.join(process.cwd(), "src", "routes", "**", "*.js")]
       };
     }
     return swaggerOptions;
