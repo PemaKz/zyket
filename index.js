@@ -12,6 +12,7 @@ const Extension = require("./src/extensions/Extension");
 const InteractiveStorageExtension = require("./src/extensions/interactive-storage");
 const AuthService = require("./src/services/auth");
 const MulterMiddleware = require("./src/extensions/interactive-storage/middlewares/MulterMiddleware");
+const RedirectResponse = require("./src/services/express/RedirectResponse");
 
 
 module.exports = {
@@ -25,5 +26,6 @@ module.exports = {
   BullBoardExtension, InteractiveStorageExtension,
   Extension,
   AuthService,
-  MulterMiddleware
+  MulterMiddleware,
+  RedirectResponse
 }

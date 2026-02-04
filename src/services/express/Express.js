@@ -125,6 +125,8 @@ module.exports = class Express extends Service {
           async (req, res) => {
             try {
               const routeResponse = await route[methodName]({ container: this.#container, request: req, response: res });
+
+              if (routeResponse instanceof RedirectResponse)  return res.redirect(routeResponse.url);
               
               // Check if response is a buffer (file download)
               if (Buffer.isBuffer(routeResponse)) {
