@@ -1,6 +1,7 @@
 const path = require("path");
 
 module.exports = {
+  openapi: '3.0.0',
   swaggerDefinition: {
     info: {
       title: "API Documentation",

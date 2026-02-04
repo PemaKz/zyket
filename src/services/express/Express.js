@@ -209,7 +209,8 @@ module.exports = class Express extends Service {
       this.#container.get('logger').info("No Swagger configuration found. Creating default config/swagger.js");
       fs.mkdirSync(path.join(process.cwd(), "config"), { recursive: true });
       this.#container.get('template-manager').installFile('default/config/swagger', swaggerConfigPath);
-      swaggerOptions = { 
+      swaggerOptions = {
+        openapi: '3.0.0',
         swaggerDefinition: {
           info: {
             title: "API Documentation",
@@ -220,7 +221,7 @@ module.exports = class Express extends Service {
             { url: `http://localhost:3000` }
           ],
         },
-        apis: [path.join(process.cwd(), "src", "routes", "**", "*.js")]
+        apis: [path.join(process.cwd(), "src", "routes", "**", "*.yml")]
       };
     }
     return swaggerOptions;
