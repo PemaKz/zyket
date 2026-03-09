@@ -1,0 +1,133 @@
+{
+  "name": "zyket",
+  "description": "Comprehensive skills for building Zyket backends.",
+  "version": "1.0.8",
+  "author": {
+    "name": "PemaK"
+  },
+  "homepage": "https://zyket.com",
+  "repository": "https://github.com/PemaK/zyket-claude",
+  "keywords": [
+    "zyket",
+    "backend",
+    "admin",
+    "node.js",
+    "headless",
+    "api",
+    "database",
+    "authentication",
+    "authorization",
+    "file management",
+    "email",
+    "notifications",
+    "analytics",
+    "logging",
+    "testing",
+    "deployment",
+    "security"
+  ],
+  "skills": [
+    {
+      "name": "zyket-overview",
+      "description": "Overview of the Zyket framework, its architecture and project structure",
+      "file": "skills/overview.md"
+    },
+    {
+      "name": "zyket-routes",
+      "description": "How to create and configure Express HTTP routes in Zyket",
+      "file": "skills/routes.md"
+    },
+    {
+      "name": "zyket-middlewares",
+      "description": "How to create Express middlewares in Zyket",
+      "file": "skills/middlewares.md"
+    },
+    {
+      "name": "zyket-database",
+      "description": "How to define Sequelize models and run database migrations in Zyket",
+      "file": "skills/database.md"
+    },
+    {
+      "name": "zyket-events",
+      "description": "How to create and emit events in Zyket",
+      "file": "skills/events.md"
+    },
+    {
+      "name": "zyket-workers",
+      "description": "How to create BullMQ workers and manage job queues in Zyket",
+      "file": "skills/workers.md"
+    },
+    {
+      "name": "zyket-scheduler",
+      "description": "How to create cron-based scheduled tasks in Zyket",
+      "file": "skills/scheduler.md"
+    },
+    {
+      "name": "zyket-socketio",
+      "description": "How to create Socket.IO handlers and guards in Zyket",
+      "file": "skills/socketio.md"
+    },
+    {
+      "name": "zyket-auth",
+      "description": "How to set up authentication using better-auth in Zyket",
+      "file": "skills/auth.md"
+    },
+    {
+      "name": "zyket-services",
+      "description": "How to use built-in services (cache, S3, logger) and create custom services in Zyket",
+      "file": "skills/services.md"
+    },
+    {
+      "name": "zyket-extensions",
+      "description": "How to create and use extensions in Zyket",
+      "file": "skills/extensions.md"
+    }
+  ],
+  "commands": [
+    {
+      "name": "route",
+      "description": "Create a new HTTP route",
+      "file": "commands/route.md"
+    },
+    {
+      "name": "middleware",
+      "description": "Create a new Express middleware",
+      "file": "commands/middleware.md"
+    },
+    {
+      "name": "model",
+      "description": "Create a new Sequelize model",
+      "file": "commands/model.md"
+    },
+    {
+      "name": "event",
+      "description": "Create a new event",
+      "file": "commands/event.md"
+    },
+    {
+      "name": "worker",
+      "description": "Create a new BullMQ worker",
+      "file": "commands/worker.md"
+    },
+    {
+      "name": "schedule",
+      "description": "Create a new cron schedule",
+      "file": "commands/schedule.md"
+    },
+    {
+      "name": "handler",
+      "description": "Create a new Socket.IO event handler",
+      "file": "commands/handler.md"
+    },
+    {
+      "name": "guard",
+      "description": "Create a new Socket.IO guard",
+      "file": "commands/guard.md"
+    },
+    {
+      "name": "service",
+      "description": "Create a new custom service",
+      "file": "commands/service.md"
+    }
+  ]
+}
