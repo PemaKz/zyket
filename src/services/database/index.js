@@ -22,17 +22,36 @@ module.exports = class Database extends Service {
   
   async boot() {
     this.#createModelsFolder();
-    this.sequelize = new Sequelize(this.#databaseUrl, {
-      dialect: process.env.DATABASE_DIALECT || 'mariadb',
+    const dialect = process.env.DATABASE_DIALECT || 'mariadb';
+    const options = {
+      dialect,
       logging: (msg) => this.#container.get('logger').debug(msg),
       operatorsAliases: 0,
-      pool: {
+    };
+
+    // SQLite doesn't support connection pooling
+    if (dialect !== 'sqlite') {
+      options.pool = {
         max: 40,
         min: 0,
         acquire: 30000,
         idle: 10000
-      },
-    });
+      };
+    }
+
+    // For SQLite, handle storage option
+    if (dialect === 'sqlite') {
+      // If using sqlite dialect, the database URL should be a file path
+      // or ':memory:' for in-memory database
+      this.sequelize = new Sequelize({
+        dialect: 'sqlite',
+        storage: this.#databaseUrl.replace('sqlite://', '') || ':memory:',
+        logging: (msg) => this.#container.get('logger').debug(msg),
+        operatorsAliases: 0,
+      });
+    } else {
+      this.sequelize = new Sequelize(this.#databaseUrl, options);
+    }
 
     await this.sequelize.authenticate();
 
