@@ -11,13 +11,14 @@ module.exports = class TemplateManager extends Service {
   }
 
   async boot() {
-    const zyketTemplates = await fg(['**/*.js'], {
+    const zyketTemplates = await fg(['**/*'], {
       cwd: path.join(__dirname, '../../templates'),
     });
+    console.log('Found templates:', zyketTemplates);
     for (const template of zyketTemplates) {
       const templatePath = path.join(__dirname, '../../templates', template);
       const templateContent = fs.readFileSync(templatePath, 'utf-8');
-      this.templates[template.replace('.js', '')] = {
+      this.templates[template.replace('.jsx', '').replace('.js', '').replace('.html', '').replace('.css', '')] = {
         route: template,
         content: templateContent
       };   

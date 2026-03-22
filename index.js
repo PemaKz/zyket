@@ -13,6 +13,7 @@ const InteractiveStorageExtension = require("./src/extensions/interactive-storag
 const AuthService = require("./src/services/auth");
 const MulterMiddleware = require("./src/extensions/interactive-storage/middlewares/MulterMiddleware");
 const RedirectResponse = require("./src/services/express/RedirectResponse");
+const ViteService = require("./src/services/vite");
 
 
 module.exports = {
@@ -27,5 +28,6 @@ module.exports = {
   Extension,
   AuthService,
   MulterMiddleware,
-  RedirectResponse
+  RedirectResponse,
+  ViteService,
 }

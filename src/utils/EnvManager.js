@@ -15,7 +15,7 @@ module.exports = class EnvManager {
     const envsToCreate = {
       DEBUG: true,
       PORT: 3000,
-      DISABLE_SOCKET: false,
+      DISABLE_SOCKET: true,
       DISABLE_EXPRESS: false,
       DISABLE_EVENTS: true,
       DISABLE_BULLMQ: true,
@@ -30,6 +30,9 @@ module.exports = class EnvManager {
       S3_SECRET_KEY: '',
       LOG_DIRECTORY: "./logs",
       QUEUES: '',
+      VITE_ROOT: './frontend',
+      VITE_PORT: 5173,
+      DISABLE_VITE: true,
     }
 
     return Object.entries(envsToCreate).reduce((acc, [key, value]) => {
