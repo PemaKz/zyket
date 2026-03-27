@@ -8,6 +8,7 @@ const fg = require('fast-glob');
 const Middleware = require("./Middleware");
 const swaggerJsDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const RedirectResponse = require("./RedirectResponse");
 
 
 module.exports = class Express extends Service {
