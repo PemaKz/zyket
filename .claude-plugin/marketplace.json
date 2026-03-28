@@ -1,0 +1,17 @@
+{
+  "name": "zyket-plugins",
+  "owner": {
+    "name": "OnchainTech"
+  },
+  "metadata": {
+    "description": "Official Claude Code plugins for the Zyket framework"
+  },
+  "plugins": [
+    {
+      "name": "zyket",
+      "source": "./plugin",
+      "description": "Generate Zyket framework components — handlers, guards, routes, middlewares, services, events, schedulers, workers, and extensions.",
+      "version": "1.0.0"
+    }
+  ]
+}
