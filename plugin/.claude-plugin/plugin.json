@@ -1,0 +1,8 @@
+{
+  "name": "zyket",
+  "description": "Claude Code plugin for the Zyket framework — scaffold handlers, guards, routes, middlewares, services, events, schedulers, workers, and extensions.",
+  "version": "1.0.0",
+  "author": {
+    "name": "OnchainTech"
+  }
+}
