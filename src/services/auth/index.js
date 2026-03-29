@@ -40,6 +40,10 @@ module.exports = class AuthService extends Service {
     return {};
   }
 
+  get hooks() {
+    return {};
+  }
+
   async sendResetPasswordEmail({ user, url, token }, request) {
     throw new Error("sendResetPasswordEmail method not implemented");
   }
@@ -59,6 +63,7 @@ module.exports = class AuthService extends Service {
   get auth() {
     const cache = this.#container.get('cache');
     return betterAuth({
+      hooks: this.hooks,
       plugins: [
         admin(),
         bearer(),
