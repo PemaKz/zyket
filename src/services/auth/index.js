@@ -32,6 +32,14 @@ module.exports = class AuthService extends Service {
     return {};
   }
 
+  get memberAdditionalFields() {
+    return {};
+  }
+
+  get organizationAdditionalFields() {
+    return {};
+  }
+
   async sendResetPasswordEmail({ user, url, token }, request) {
     throw new Error("sendResetPasswordEmail method not implemented");
   }
@@ -55,6 +63,14 @@ module.exports = class AuthService extends Service {
         admin(),
         bearer(),
         organization({
+          schema: {
+            organization: {
+              additionalFields: this.organizationAdditionalFields
+            },
+            member: { 
+              additionalFields: this.memberAdditionalFields
+            }
+          },
           allowUserToCreateOrganization: async (user) => {
             return await this.allowUserToCreateOrganization(user);
           },
