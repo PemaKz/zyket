@@ -185,9 +185,21 @@ module.exports = class Express extends Service {
       routePath = routePath.replaceAll('index', '/');
       routePath = routePath.replaceAll('//', '/');
       routePath = routePath.replace(/\[([^\]]+)\]/g, ':$1');
-      
+
       return new route(routePath);
     });
+
+    routes.sort((a, b) => {
+      const aSegments = a.path.split('/').filter(Boolean);
+      const bSegments = b.path.split('/').filter(Boolean);
+      const aDynCount = aSegments.filter(s => s.startsWith(':')).length;
+      const bDynCount = bSegments.filter(s => s.startsWith(':')).length;
+      if (aDynCount !== bDynCount) return aDynCount - bDynCount;
+      const aFirstDyn = aSegments.findIndex(s => s.startsWith(':'));
+      const bFirstDyn = bSegments.findIndex(s => s.startsWith(':'));
+      return (bFirstDyn === -1 ? Infinity : bFirstDyn) - (aFirstDyn === -1 ? Infinity : aFirstDyn);
+    });
+
     return routes;
   }
 
