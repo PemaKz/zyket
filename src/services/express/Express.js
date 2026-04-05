@@ -33,7 +33,7 @@ module.exports = class Express extends Service {
 
     const corsOptions = await this.#loadCorsOrCreateDefault();
 
-    this.#app.use(cors(corsOptions));
+    if(corsOptions) this.#app.use(cors(corsOptions));
 
     // Swagger setup
     const swaggerOptions = {
@@ -171,7 +171,7 @@ module.exports = class Express extends Service {
       this.#container.get('logger').info("No CORS configuration found. Creating default config/cors.js");
       fs.mkdirSync(path.join(process.cwd(), "config"), { recursive: true });
       this.#container.get('template-manager').installFile('default/config/cors', corsConfigPath);
-      corsOptions = { origin: '*' };
+      corsOptions = false;
     }
     return corsOptions;
   }
