@@ -7,16 +7,17 @@ const basicAuth = require('express-basic-auth')
 module.exports = class BullBoardExtension  extends Extension {
   path;
 
-  constructor({ path = '/bullboard' } = {}) {
+  constructor({ path = '/bullboard', basePath = '' } = {}) {
     super("BullBoardExtension");
     this.path = path || '/bullboard';
+    this.basePath = basePath;
   }
 
   load(container) {
     if (!container.get('bullmq')) return container.get('logger').warn('BullBoardExtension: bullmq service not found, skipping BullBoard setup');
     const bull = container.get('bullmq')
     const serverAdapter = new ExpressAdapter()
-    serverAdapter.setBasePath(this.path)
+    serverAdapter.setBasePath(this.basePath + this.path)
 
     createBullBoard({
       queues: Object.values(bull.queues).map(queue => new BullMQAdapter(queue)),
