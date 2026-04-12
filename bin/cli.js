@@ -2,6 +2,7 @@
 const prompts = require('prompts');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const TemplateManager = require('../src/services/template-manager');
 const EnvManager = require('../src/utils/EnvManager');
 const templateManager = new TemplateManager();
@@ -63,11 +64,41 @@ const templateManager = new TemplateManager();
 			console.log('[ZYKET] Creating .env file...');
 			EnvManager.createEnvFile(envPath);
 
+			// Install default backend template files (src and config)
+			console.log('[ZYKET] Installing default backend template files...');
+			const defaultTemplate = templateManager.getTemplate('default');
+			const backendFiles = defaultTemplate.filter(file => {
+				const route = file.route;
+				// Only install src and config files, not frontend
+				return route.startsWith('default/src/') || route.startsWith('default/config/');
+			});
+
+			for (const file of backendFiles) {
+				const fileName = file.route.split('/').slice(1).join('/');
+				const fileLocation = path.join(process.cwd(), fileName);
+				const folderLocation = path.dirname(fileLocation);
+				
+				// Create directory if it doesn't exist
+				if (!fs.existsSync(folderLocation)) {
+					fs.mkdirSync(folderLocation, { recursive: true });
+				}
+				
+				// Write file if it doesn't exist
+				if (!fs.existsSync(fileLocation)) {
+					fs.writeFileSync(fileLocation, file.content);
+				}
+			}
+			console.log('[ZYKET] ✅ Backend template files installed');
+
 			// Create index.js with boilerplate code
 			console.log('[ZYKET] Creating index.js...');
 			const indexContent = `const { Kernel } = require('zyket');
 
-const kernel = new Kernel();
+const kernel = new Kernel({
+	services: [
+		['auth', require('./src/services/auth'), ["@service_container"]],
+	]
+});
 
 kernel.boot().then(() => {
     console.log('Kernel booted successfully!');
@@ -99,11 +130,68 @@ kernel.boot().then(() => {
 			}
 
 			console.log('\n[ZYKET] ✅ Project initialized successfully!');
-			console.log('\n[ZYKET] Next steps:');
-			console.log('  1. Review and update your .env file');
-			console.log('  2. Run: npm install (if you haven\'t already)');
-			console.log('  3. Run: npm run dev');
-			console.log('\n[ZYKET] Happy coding! 🚀\n');
+
+			// Ask if user wants to install dependencies
+			const installDeps = await prompts({
+				type: 'confirm',
+				name: 'value',
+				message: '[ZYKET] Install dependencies now?',
+				initial: true
+			});
+
+			if (installDeps.value) {
+				console.log('\n[ZYKET] Installing dependencies...');
+				await new Promise((resolve, reject) => {
+					const npmInstall = spawn('npm', ['install'], {
+						cwd: process.cwd(),
+						stdio: 'inherit',
+						shell: true
+					});
+
+					npmInstall.on('close', (code) => {
+						if (code === 0) {
+							console.log('[ZYKET] ✅ Dependencies installed successfully!');
+							resolve();
+						} else {
+							reject(new Error(`npm install exited with code ${code}`));
+						}
+					});
+
+					npmInstall.on('error', (error) => {
+						reject(error);
+					});
+				});
+
+				// Ask if user wants to start the project
+				const startProject = await prompts({
+					type: 'confirm',
+					name: 'value',
+					message: '[ZYKET] Start the project now?',
+					initial: true
+				});
+
+				if (startProject.value) {
+					console.log('\n[ZYKET] Starting project...\n');
+					const nodeStart = spawn('node', ['index.js'], {
+						cwd: process.cwd(),
+						stdio: 'inherit',
+						shell: true
+					});
+
+					nodeStart.on('error', (error) => {
+						console.error('[ZYKET] Error starting project:', error);
+					});
+				} else {
+					console.log('\n[ZYKET] Run "npm run dev" to start your application.');
+					console.log('\n[ZYKET] Happy coding! 🚀\n');
+				}
+			} else {
+				console.log('\n[ZYKET] Next steps:');
+				console.log('  1. Run: npm install');
+				console.log('  2. Review and update your .env file');
+				console.log('  3. Run: npm run dev');
+				console.log('\n[ZYKET] Happy coding! 🚀\n');
+			}
 		},
 		'install-template': async () => {
 			const templates = templateManager.getTemplates();
