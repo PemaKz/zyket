@@ -11,7 +11,9 @@ module.exports = class Cache extends Service {
   constructor(container, url) {
     super("cache");
     this.#container = container;
-    this.#useRedis = !!url && url !== '';
+    // Check if URL is a valid Redis URL (starts with redis://)
+    // Empty string, 'memory', or 'in-memory' will use in-memory cache
+    this.#useRedis = !!url && url.startsWith('redis://');
     
     if (this.#useRedis) {
       this.#client = createClient({ url });

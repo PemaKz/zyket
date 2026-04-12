@@ -13,8 +13,7 @@ module.exports = class EnvManager {
 
   static getDefaultSecrets() {
     const header = `# Zyket Environment Configuration
-# Leave CACHE_URL empty to use in-memory cache, or set to redis://localhost:6379 for Redis
-
+# CACHE_URL: Leave empty or set to 'memory' for in-memory cache, or 'redis://localhost:6379' for Redis
 `;
     const envsToCreate = {
       DEBUG: true,
