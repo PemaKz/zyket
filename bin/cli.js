@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 const prompts = require('prompts');
+const fs = require('fs');
+const path = require('path');
 const TemplateManager = require('../src/services/template-manager');
+const EnvManager = require('../src/utils/EnvManager');
 const templateManager = new TemplateManager();
 
 (async () => {
@@ -11,6 +14,7 @@ const templateManager = new TemplateManager();
 		name: 'value',
 		message: '[ZYKET] What do you want to do?',
 		choices: [
+			{ title: 'Initialize Project', value: 'init-project', description: 'Set up a new Zyket project', disabled: false },
 			{ title: 'Install Template', value: 'install-template', description: 'Install a new template', disabled: false },
 			/*{ title: 'Remove Template', value: 'remove-template', description: 'Remove an existing template', disabled: false },*/
 		],
@@ -18,6 +22,71 @@ const templateManager = new TemplateManager();
 	});
 
   const actions = {
+		'init-project': async () => {
+			const indexPath = path.join(process.cwd(), 'index.js');
+			const envPath = path.join(process.cwd(), '.env');
+			const packageJsonPath = path.join(process.cwd(), 'package.json');
+
+			// Check if index.js already exists
+			if (fs.existsSync(indexPath)) {
+				const overwrite = await prompts({
+					type: 'confirm',
+					name: 'value',
+					message: '[ZYKET] index.js already exists. Overwrite?',
+					initial: false
+				});
+				if (!overwrite.value) {
+					console.log('[ZYKET] Initialization cancelled.');
+					return;
+				}
+			}
+
+			// Create .env file
+			console.log('[ZYKET] Creating .env file...');
+			EnvManager.createEnvFile(envPath);
+
+			// Create index.js with boilerplate code
+			console.log('[ZYKET] Creating index.js...');
+			const indexContent = `const { Kernel } = require('zyket');
+
+const kernel = new Kernel();
+
+kernel.boot().then(() => {
+    console.log('Kernel booted successfully!');
+}).catch((error) => {
+    console.error('Error booting kernel:', error);
+});
+`;
+			fs.writeFileSync(indexPath, indexContent);
+
+			// Create package.json if it doesn't exist
+			if (!fs.existsSync(packageJsonPath)) {
+				console.log('[ZYKET] Creating package.json...');
+				const packageJson = {
+					name: path.basename(process.cwd()),
+					version: "1.0.0",
+					description: "Zyket application",
+					main: "index.js",
+					scripts: {
+						dev: "node index.js"
+					},
+					keywords: [],
+					author: "",
+					license: "ISC",
+					dependencies: {
+						zyket: "^1.2.3"
+					}
+				};
+				fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+			}
+
+			console.log('\n[ZYKET] ✅ Project initialized successfully!');
+			console.log('\n[ZYKET] Next steps:');
+			console.log('  1. Review and update your .env file');
+			console.log('  2. Run: npm install (if you haven\'t already)');
+			console.log('  3. Run: npm run dev');
+			console.log('\n[ZYKET] Happy coding! 🚀\n');
+		},
 		'install-template': async () => {
 			const templates = templateManager.getTemplates();
 			const response = await prompts({

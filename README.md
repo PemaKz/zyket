@@ -6,7 +6,37 @@ Upon initial boot, Zyket automatically scaffolds a default project structure, in
 
 ## Getting Started
 
-To begin using Zyket, install it in your project:
+### Quick Start (Recommended)
+
+The easiest way to get started with Zyket is to use the CLI initialization command:
+
+```bash
+# Create a new directory for your project
+mkdir my-zyket-app
+cd my-zyket-app
+
+# Install zyket
+npm install zyket
+
+# Initialize the project
+npx zyket init
+
+# Install dependencies (if not already done)
+npm install
+
+# Start your application
+npm run dev
+```
+
+The `init` command will:
+- Create an `index.js` file with the kernel boilerplate
+- Generate a `.env` file with sensible defaults
+- Create a `package.json` if one doesn't exist
+- Set up your project ready to run
+
+### Manual Setup (Alternative)
+
+If you prefer to set up manually, install Zyket in your project:
 
 ```bash
 npm i zyket
