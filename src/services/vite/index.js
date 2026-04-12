@@ -1,6 +1,7 @@
 const Service = require("../Service");
 const path = require("path");
 const fs = require("fs");
+const EnvManager = require("../../utils/EnvManager");
 
 module.exports = class Vite extends Service {
   #container;
@@ -67,6 +68,47 @@ module.exports = class Vite extends Service {
 
     if (!fs.existsSync(path.join(viteRoot, "styles.css"))) {
       this.#container.get('template-manager').installFile('default/frontend/styles', path.join(process.cwd(), process.env.VITE_ROOT || "frontend", "styles.css"));
+    }
+
+    // Install src directory if it doesn't exist
+    if (!fs.existsSync(path.join(viteRoot, "src"))) {
+      this.#installSrcFiles(viteRoot);
+    }
+  }
+
+  #installSrcFiles(viteRoot) {
+    const templateManager = this.#container.get('template-manager');
+    const srcFiles = Object.keys(templateManager.templates).filter(key => 
+      key.startsWith('default/frontend/src/')
+    );
+
+    for (const fileKey of srcFiles) {
+      const template = templateManager.templates[fileKey];
+      // Extract the path after 'default/frontend/'
+      const relativePath = template.route.replace(/^default\/frontend\//, '');
+      const targetPath = path.join(viteRoot, relativePath);
+      
+      // Create directory if it doesn't exist
+      const targetDir = path.dirname(targetPath);
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      
+      // Write the file
+      fs.writeFileSync(targetPath, template.content);
+      this.#container.get('logger').info(`Installed template file: ${relativePath}`);
+    }
+
+    // Add VITE_API_BASE to .env file
+    this.#addViteApiBaseToEnv();
+  }
+
+  #addViteApiBaseToEnv() {
+    const envPath = path.join(process.cwd(), '.env');
+    const added = EnvManager.addEnvVariable(envPath, 'VITE_API_BASE', 'http://localhost:3000');
+    
+    if (added) {
+      this.#container.get('logger').info('Added VITE_API_BASE to .env file');
     }
   }
 

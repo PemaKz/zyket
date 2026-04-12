@@ -31,8 +31,10 @@
     "node-dependency-injection": "^3.2.6",
     "pg": "^8.20.0",
     "prompts": "^2.4.2",
+    "prop-types": "^15.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.0",
     "redis": "^5.11.0",
     "sequelize": "^6.37.8",
     "socket.io": "^4.8.3",
@@ -41,6 +43,7 @@
     "swagger-ui-express": "^5.0.1",
     "tailwindcss": "^4.2.2",
     "umzug": "^3.8.2",
-    "vite": "^8.0.2"
+    "vite": "^8.0.2",
+    "zustand": "^5.0.12"
   }
 }

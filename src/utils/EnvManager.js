@@ -39,4 +39,25 @@ module.exports = class EnvManager {
       return `${acc}${key}=${value}\n`;
     }, "");
   }
+
+  static addEnvVariable(secretsPath, key, value) {
+    // Create env file if it doesn't exist
+    if (!fs.existsSync(secretsPath)) {
+      this.createEnvFile(secretsPath);
+    }
+
+    // Read existing content
+    let envContent = fs.readFileSync(secretsPath, 'utf-8');
+
+    // Check if the key already exists
+    const keyRegex = new RegExp(`^${key}=.*$`, 'm');
+    if (keyRegex.test(envContent)) {
+      return false; // Key already exists
+    }
+
+    // Add the new environment variable
+    envContent += `${key}=${value}\n`;
+    fs.writeFileSync(secretsPath, envContent);
+    return true; // Key added successfully
+  }
 }
