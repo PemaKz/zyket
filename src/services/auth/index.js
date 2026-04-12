@@ -37,6 +37,11 @@ module.exports = class AuthService extends Service {
     if (originsAdded) {
       this.#container.get('logger').info('Added TRUSTED_ORIGINS to .env file');
     }
+
+    const betterAuthUrlAdded = EnvManager.addEnvVariable(envPath, 'BETTER_AUTH_URL', 'http://localhost:3000');
+    if (betterAuthUrlAdded) {
+      this.#container.get('logger').info('Added BETTER_AUTH_URL to .env file');
+    }
   }
 
   #getDatabaseConnection() {
@@ -183,6 +188,7 @@ module.exports = class AuthService extends Service {
         expiresIn: 60 * 60 * 24 * 7,
         updateAge: 60 * 60 * 24
       },
+      baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
       secret: process.env.AUTH_SECRET || 'your-secret-key-change-in-production',
       trustedOrigins: process.env.TRUSTED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:6632']
     })

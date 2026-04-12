@@ -1,11 +1,10 @@
 import { Navigate, Routes, Route, Link, useLocation } from "react-router-dom";
 import useLayout from "../../hooks/useLayout";
-import PanelDashboardView from "../../views/panel/dashboard";
 import layoutRoutes from "./routes";
 
 export default function PanelLayout() {
   const location = useLocation();
-  const { routes } = useLayout();
+  const { routes } = useLayout(layoutRoutes);
 
   const navItems = [
     { name: "Dashboard", path: "/panel/dashboard", icon: "📊" },

@@ -1,10 +1,10 @@
 import PanelDashboardView from "../../views/panel/dashboard";
 import LoggedMiddleware from "../../middlewares/LoggedMiddleware";
 
-module.exports = [
+export default [
   {
     name: "Panel Dashboard",
-    path: "/panel/dashboard",
+    path: "/dashboard",
     component: PanelDashboardView,
     middlewares: [LoggedMiddleware],
   }

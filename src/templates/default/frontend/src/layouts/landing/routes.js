@@ -1,6 +1,6 @@
 import LandingView from "../../views/landing";
 
-module.exports = [
+export default [
   {
     name: "Landing",
     path: "/",

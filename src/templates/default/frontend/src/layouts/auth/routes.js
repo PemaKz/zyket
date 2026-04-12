@@ -2,16 +2,16 @@ import AuthView from "../../views/auth";
 import AuthRegisterView from "../../views/auth/register";
 import NotLoggedMiddleware from "../../middlewares/NotLoggedMiddleware";
 
-module.exports = [
+export default [
   {
     name: "Auth",
-    path: "/auth",
+    path: "/",
     component: AuthView,
     middlewares: [NotLoggedMiddleware],
   },
   {
     name: "Auth Register",
-    path: "/auth/register",
+    path: "/register",
     component: AuthRegisterView,
     middlewares: [NotLoggedMiddleware],
   }

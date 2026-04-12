@@ -1,5 +1,6 @@
 import { Navigate, Routes, Route, Link } from "react-router-dom";
 import useLayout from "../../hooks/useLayout";
+import layoutRoutes from "./routes";
 
 export default function LandingLayout() {
   const { routes } = useLayout(layoutRoutes)

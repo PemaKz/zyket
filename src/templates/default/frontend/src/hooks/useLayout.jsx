@@ -3,7 +3,7 @@ import { Route } from 'react-router-dom';
 
 export default function useLayout(routeList) {
   
-  const routes = routesJSON.map((route, index) => {
+  const routes = routeList.map((route, index) => {
     const middlewares = route.middlewares ? [...route.middlewares].reverse() : [];
     let element = <route.component />;
     middlewares.forEach((middleware) => {
