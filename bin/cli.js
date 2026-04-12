@@ -70,7 +70,10 @@ const templateManager = new TemplateManager();
 			const backendFiles = defaultTemplate.filter(file => {
 				const route = file.route;
 				// Only install src and config files, not frontend
-				return route.startsWith('default/src/') || route.startsWith('default/config/');
+				// Skip guards and handlers folders since socket is disabled by default
+				return (route.startsWith('default/src/') || route.startsWith('default/config/')) 
+					&& !route.startsWith('default/src/guards/')
+					&& !route.startsWith('default/src/handlers/');
 			});
 
 			for (const file of backendFiles) {
@@ -131,67 +134,40 @@ kernel.boot().then(() => {
 
 			console.log('\n[ZYKET] ✅ Project initialized successfully!');
 
-			// Ask if user wants to install dependencies
-			const installDeps = await prompts({
-				type: 'confirm',
-				name: 'value',
-				message: '[ZYKET] Install dependencies now?',
-				initial: true
+			// Install dependencies automatically
+			console.log('\n[ZYKET] Installing dependencies...');
+			await new Promise((resolve, reject) => {
+				const npmInstall = spawn('npm', ['install'], {
+					cwd: process.cwd(),
+					stdio: 'inherit',
+					shell: true
+				});
+
+				npmInstall.on('close', (code) => {
+					if (code === 0) {
+						console.log('\n[ZYKET] ✅ Dependencies installed successfully!');
+						resolve();
+					} else {
+						reject(new Error(`npm install exited with code ${code}`));
+					}
+				});
+
+				npmInstall.on('error', (error) => {
+					reject(error);
+				});
 			});
 
-			if (installDeps.value) {
-				console.log('\n[ZYKET] Installing dependencies...');
-				await new Promise((resolve, reject) => {
-					const npmInstall = spawn('npm', ['install'], {
-						cwd: process.cwd(),
-						stdio: 'inherit',
-						shell: true
-					});
+			// Start the project automatically
+			console.log('\n[ZYKET] Starting project...\n');
+			const nodeStart = spawn('node', ['index.js'], {
+				cwd: process.cwd(),
+				stdio: 'inherit',
+				shell: true
+			});
 
-					npmInstall.on('close', (code) => {
-						if (code === 0) {
-							console.log('[ZYKET] ✅ Dependencies installed successfully!');
-							resolve();
-						} else {
-							reject(new Error(`npm install exited with code ${code}`));
-						}
-					});
-
-					npmInstall.on('error', (error) => {
-						reject(error);
-					});
-				});
-
-				// Ask if user wants to start the project
-				const startProject = await prompts({
-					type: 'confirm',
-					name: 'value',
-					message: '[ZYKET] Start the project now?',
-					initial: true
-				});
-
-				if (startProject.value) {
-					console.log('\n[ZYKET] Starting project...\n');
-					const nodeStart = spawn('node', ['index.js'], {
-						cwd: process.cwd(),
-						stdio: 'inherit',
-						shell: true
-					});
-
-					nodeStart.on('error', (error) => {
-						console.error('[ZYKET] Error starting project:', error);
-					});
-				} else {
-					console.log('\n[ZYKET] Run "npm run dev" to start your application.');
-					console.log('\n[ZYKET] Happy coding! 🚀\n');
-				}
-			} else {
-				console.log('\n[ZYKET] Next steps:');
-				console.log('  1. Run: npm install');
-				console.log('  2. Review and update your .env file');
-				console.log('  3. Run: npm run dev');
-				console.log('\n[ZYKET] Happy coding! 🚀\n');
-			}
+			nodeStart.on('error', (error) => {
+				console.error('[ZYKET] Error starting project:', error);
+			});
 		},
 		'install-template': async () => {
 			const templates = templateManager.getTemplates();

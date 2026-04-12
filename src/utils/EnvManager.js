@@ -12,6 +12,10 @@ module.exports = class EnvManager {
   }
 
   static getDefaultSecrets() {
+    const header = `# Zyket Environment Configuration
+# Leave CACHE_URL empty to use in-memory cache, or set to redis://localhost:6379 for Redis
+
+`;
     const envsToCreate = {
       DEBUG: true,
       PORT: 3000,
@@ -35,7 +39,7 @@ module.exports = class EnvManager {
       DISABLE_VITE: true,
     }
 
-    return Object.entries(envsToCreate).reduce((acc, [key, value]) => {
+    return header + Object.entries(envsToCreate).reduce((acc, [key, value]) => {
       return `${acc}${key}=${value}\n`;
     }, "");
   }
