@@ -3,6 +3,7 @@ const { toNodeHandler } = require('better-auth/node');
 const { betterAuth } = require("better-auth");
 const { admin, bearer, organization } = require("better-auth/plugins");
 const { Pool } = require("pg");
+const path = require("path");
 
 module.exports = class AuthService extends Service {
   #container;
@@ -14,10 +15,44 @@ module.exports = class AuthService extends Service {
   }
 
   async boot() {
-    if(process.env.DATABASE_DIALECT !== 'postgresql') throw new Error("AuthService only supports PostgreSQL as database dialect");
+    if (!['postgresql', 'sqlite'].includes(process.env.DATABASE_DIALECT)) {
+      throw new Error("AuthService only supports PostgreSQL and SQLite as database dialects");
+    }
+    this.#addAuthEnvVariables();
     this.client = this.auth;
     const express = this.#container.get('express');
     express.regiterRawAllRoutes("/api/auth/*splat", toNodeHandler(this.auth));
+  }
+
+  #addAuthEnvVariables() {
+    const EnvManager = require('../../utils/EnvManager');
+    const envPath = path.join(process.cwd(), '.env');
+    
+    const secretAdded = EnvManager.addEnvVariable(envPath, 'AUTH_SECRET', 'change-this-secret-in-production');
+    if (secretAdded) {
+      this.#container.get('logger').info('Added AUTH_SECRET to .env file');
+    }
+
+    const originsAdded = EnvManager.addEnvVariable(envPath, 'TRUSTED_ORIGINS', 'http://localhost:5173,http://localhost:3000');
+    if (originsAdded) {
+      this.#container.get('logger').info('Added TRUSTED_ORIGINS to .env file');
+    }
+  }
+
+  #getDatabaseConnection() {
+    const dialect = process.env.DATABASE_DIALECT;
+
+    if (dialect === 'sqlite') {
+      const Database = require('better-sqlite3');
+      const dbPath = process.env.DATABASE_URL || path.join(process.cwd(), 'database.sqlite');
+      return new Database(dbPath);
+    } else if (dialect === 'postgresql') {
+      return new Pool({
+        connectionString: process.env.DATABASE_URL || null,
+      });
+    }
+
+    throw new Error(`Unsupported database dialect: ${dialect}`);
   }
 
   get plugins() {
@@ -86,9 +121,7 @@ module.exports = class AuthService extends Service {
         ...this.plugins,
       ],
       socialProviders: this.socialProviders,
-      database: new Pool({
-        connectionString: process.env.DATABASE_URL || null,
-      }),
+      database: this.#getDatabaseConnection(),
       advanced: {
         crossSubDomainCookies: {
           enabled: true,
