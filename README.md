@@ -18,11 +18,8 @@ cd my-zyket-app
 # Install zyket
 npm install zyket
 
-# Initialize the project
+# Initialize the project (one command!)
 npx zyket init
-
-# Install dependencies (if not already done)
-npm install
 
 # Start your application
 npm run dev
@@ -33,6 +30,8 @@ The `init` command will:
 - Generate a `.env` file with sensible defaults
 - Create a `package.json` if one doesn't exist
 - Set up your project ready to run
+
+You can also run `npx zyket` without arguments for an interactive menu with more options.
 
 ### Manual Setup (Alternative)
 

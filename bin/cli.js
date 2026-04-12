@@ -9,17 +9,35 @@ const templateManager = new TemplateManager();
 (async () => {
 	process.stdout.write("\u001b[2J\u001b[0;0H");
 	await templateManager.boot();
-  const response = await prompts({
-		type: 'select',
-		name: 'value',
-		message: '[ZYKET] What do you want to do?',
-		choices: [
-			{ title: 'Initialize Project', value: 'init-project', description: 'Set up a new Zyket project', disabled: false },
-			{ title: 'Install Template', value: 'install-template', description: 'Install a new template', disabled: false },
-			/*{ title: 'Remove Template', value: 'remove-template', description: 'Remove an existing template', disabled: false },*/
-		],
-		initial: 0
-	});
+
+	// Check for direct command (e.g., npx zyket init)
+	const args = process.argv.slice(2);
+	const directCommand = args[0];
+
+	let actionToRun = null;
+
+	if (directCommand === 'init') {
+		actionToRun = 'init-project';
+	} else {
+		// Show interactive menu
+		const response = await prompts({
+			type: 'select',
+			name: 'value',
+			message: '[ZYKET] What do you want to do?',
+			choices: [
+				{ title: 'Initialize Project', value: 'init-project', description: 'Set up a new Zyket project', disabled: false },
+				{ title: 'Install Template', value: 'install-template', description: 'Install a new template', disabled: false },
+				/*{ title: 'Remove Template', value: 'remove-template', description: 'Remove an existing template', disabled: false },*/
+			],
+			initial: 0
+		});
+		actionToRun = response.value;
+	}
+
+	if (!actionToRun) {
+		console.log('[ZYKET] No action selected. Exiting.');
+		return;
+	}
 
   const actions = {
 		'init-project': async () => {
@@ -116,5 +134,5 @@ kernel.boot().then(() => {
 		}*/
 	};
 
-	await actions[response.value]();
+	await actions[actionToRun]();
 })();
