@@ -119,7 +119,7 @@ module.exports = class AuthService extends Service {
           allowUserToCreateOrganization: async (user) => {
             return await this.allowUserToCreateOrganization(user);
           },
-          async sendInvitationEmail(data) {
+          sendInvitationEmail: async (data) => {
             return await this.sendInvitationEmail(data);
           }
         }),
