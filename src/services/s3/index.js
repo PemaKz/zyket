@@ -8,8 +8,10 @@ module.exports = class S3 extends Service {
   #useSSL
   #accessKey
   #secretKey
+  #publicBuckets
+  #privateBuckets
 
-  constructor(container, endPoint, port, useSSL, accessKey, secretKey) {
+  constructor(container, endPoint, port, useSSL, accessKey, secretKey, publicBuckets, privateBuckets) {
     super('s3')
     this.#container = container
     this.#endPoint = endPoint
@@ -17,6 +19,8 @@ module.exports = class S3 extends Service {
     this.#useSSL = useSSL
     this.#accessKey = accessKey
     this.#secretKey = secretKey
+    this.#publicBuckets = this.#parseBuckets(publicBuckets)
+    this.#privateBuckets = this.#parseBuckets(privateBuckets)
   }
 
   async boot() {
@@ -27,6 +31,53 @@ module.exports = class S3 extends Service {
       accessKey: this.#accessKey,
       secretKey: this.#secretKey
     })
+
+    await this.initBuckets()
+  }
+
+  #parseBuckets(value) {
+    if (!value) return []
+    return value
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean)
+  }
+
+  async initBuckets() {
+    for (const bucketName of this.#privateBuckets) {
+      await this.ensureBucket(bucketName, false)
+    }
+    for (const bucketName of this.#publicBuckets) {
+      await this.ensureBucket(bucketName, true)
+    }
+  }
+
+  async ensureBucket(bucketName, isPublic = false) {
+    const exists = await this.client.bucketExists(bucketName)
+    if (!exists) {
+      this.#container.get('logger').info(`Creating ${isPublic ? 'public' : 'private'} bucket ${bucketName}`)
+      await this.client.makeBucket(bucketName, 'us-east-1')
+    }
+
+    if (isPublic) {
+      await this.setBucketPublic(bucketName)
+    }
+  }
+
+  async setBucketPublic(bucketName) {
+    const policy = {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: { AWS: ['*'] },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${bucketName}/*`],
+        },
+      ],
+    }
+    this.#container.get('logger').debug(`Setting public read policy on bucket ${bucketName}`)
+    return this.client.setBucketPolicy(bucketName, JSON.stringify(policy))
   }
 
   async saveFile(bucketName, fileName, file, contentType = 'binary/octet-stream') {
