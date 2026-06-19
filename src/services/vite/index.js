@@ -2,25 +2,39 @@ const Service = require("../Service");
 const path = require("path");
 const fs = require("fs");
 const EnvManager = require("../../utils/EnvManager");
+const buildViteApp = require("./builder");
 
 module.exports = class Vite extends Service {
   #container;
   #viteServer;
   #root;
   #port;
+  #isProduction;
+  #outDir;
 
   constructor(container, root, port) {
     super("vite");
     this.#container = container;
     this.#root = path.resolve(process.cwd(), root || process.cwd());
     this.#port = port || 5173;
+    this.#isProduction = process.env.NODE_ENV === "production";
   }
 
   async boot() {
     await this.#loadViteFolder();
-    const { createServer } = await import("vite");
 
     const configFile = this.#resolveConfigFile();
+
+    // In production we build the frontend once and let Express serve the
+    // generated static files. No dev server is started.
+    if (this.#isProduction) {
+      this.#container.get("logger").info("Building Vite frontend for production...");
+      this.#outDir = await buildViteApp({ root: this.#root, configFile });
+      this.#container.get("logger").info(`Vite build complete (output: ${this.#outDir})`);
+      return;
+    }
+
+    const { createServer } = await import("vite");
 
     this.#viteServer = await createServer({
       root: this.#root,
@@ -114,5 +128,13 @@ module.exports = class Vite extends Service {
 
   server() {
     return this.#viteServer;
+  }
+
+  isProduction() {
+    return this.#isProduction;
+  }
+
+  outDir() {
+    return this.#outDir;
   }
 };

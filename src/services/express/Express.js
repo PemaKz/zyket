@@ -94,11 +94,43 @@ module.exports = class Express extends Service {
         }
     });
 
+    // In production, serve the built Vite frontend (static assets + SPA fallback).
+    // Registered after API routes so the API keeps precedence.
+    this.#serveFrontend();
+
     // Attach Express to HTTP server - this allows dynamic route registration
     this.#httpServer.removeAllListeners("request");
     this.#httpServer.on("request", this.#app);
 
     this.#container.get('logger').info(`Express is running on http://localhost:${httpServer.address().port}`);
+  }
+
+  #serveFrontend() {
+    const viteEnabled = process.env.VITE_ROOT && process.env.DISABLE_VITE !== 'true';
+    if (process.env.NODE_ENV !== 'production' || !viteEnabled) return;
+
+    const vite = this.#container.has('vite') ? this.#container.get('vite') : null;
+    const distPath = vite?.outDir?.()
+      || path.resolve(process.cwd(), process.env.VITE_ROOT || 'frontend', 'dist');
+    const indexHtml = path.join(distPath, 'index.html');
+
+    if (!fs.existsSync(indexHtml)) {
+      this.#container.get('logger').warn(`Frontend build not found at ${distPath}. Skipping static serving.`);
+      return;
+    }
+
+    this.#app.use(express.static(distPath));
+
+    // SPA fallback: serve index.html for any GET not handled by API routes,
+    // except the Swagger docs path. Uses middleware (Express 5 dropped bare '*').
+    const docsPath = process.env.SWAGGER_PATH || '/docs';
+    this.#app.use((req, res, next) => {
+      if (req.method !== 'GET') return next();
+      if (req.path.startsWith(docsPath)) return next();
+      res.sendFile(indexHtml);
+    });
+
+    this.#container.get('logger').info(`Serving frontend from ${distPath}`);
   }
 
   async registerRoutes(routes) {

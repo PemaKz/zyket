@@ -6,6 +6,7 @@ module.exports = class Logger extends Service  {
   #container
   #logDirectory;
   #debugEnabled;
+  #disabled;
   messageColors = {
     log: "white",
     info: "green",
@@ -15,19 +16,22 @@ module.exports = class Logger extends Service  {
   };
   #storeTries = 0;
 
-  constructor(container, logDirectory, debugEnabled) {
+  constructor(container, logDirectory, debugEnabled, disabled = false) {
     super("logger");
     this.#container = container;
     this.#logDirectory = logDirectory;
     this.#debugEnabled = debugEnabled;
+    this.#disabled = disabled;
   }
 
   async boot() {
+    if (this.#disabled) return this;
     if (!fs.existsSync(this.#logDirectory)) fs.mkdirSync(this.#logDirectory);
     return this;
   }
 
   async store(message) {
+    if (this.#disabled) return;
     if (this.#storeTries > 10) throw new Error("Failed to store log message");
     this.#storeTries++;
     try{

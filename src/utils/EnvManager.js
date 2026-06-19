@@ -31,6 +31,7 @@ module.exports = class EnvManager {
       S3_USE_SSL: true,
       S3_ACCESS_KEY: '',
       S3_SECRET_KEY: '',
+      DISABLE_LOGGER: false,
       LOG_DIRECTORY: "./logs",
       QUEUES: '',
       VITE_ROOT: './frontend',

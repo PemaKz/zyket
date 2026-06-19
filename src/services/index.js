@@ -14,9 +14,10 @@ const schedulerActivated = process.env.DISABLE_SCHEDULER !== 'true';
 const socketActivated = process.env.DISABLE_SOCKET !== 'true';
 const expressActivated = process.env.DISABLE_EXPRESS !== 'true';
 const viteActivated = process.env.VITE_ROOT && process.env.DISABLE_VITE !== 'true';
+const loggerActivated = process.env.DISABLE_LOGGER !== 'true';
 
 module.exports = [
-  ["logger", require("./logger"), ["@service_container", process.env.LOG_DIRECTORY || `${process.cwd()}/logs`, process.env.DEBUG === "true"]],
+  ["logger", require("./logger"), ["@service_container", process.env.LOG_DIRECTORY || `${process.cwd()}/logs`, process.env.DEBUG === "true", !loggerActivated]],
   ["template-manager", require("./template-manager"), []],
   eventsActivated ? ["events", EventService, ["@service_container"]] : null,
   databaseActivated ? ["database", Database, ["@service_container", process.env.DATABASE_URL]] : null,
@@ -25,6 +26,6 @@ module.exports = [
   schedulerActivated ? ["scheduler", Scheduler, ["@service_container"]] : null,
   bullmqActivated ? ["bullmq", require("./bullmq"), ["@service_container"]] : null,
   socketActivated ? ["socketio", SocketIO, ["@service_container"]] : null,
-  expressActivated ? ["express", Express, ["@service_container"]] : null,
   viteActivated ? ["vite", require("./vite"), ["@service_container", process.env.VITE_ROOT, Number(process.env.VITE_PORT) || 5173]] : null,
+  expressActivated ? ["express", Express, ["@service_container"]] : null,
 ].filter(Boolean);
