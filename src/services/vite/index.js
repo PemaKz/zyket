@@ -25,12 +25,27 @@ module.exports = class Vite extends Service {
 
     const configFile = this.#resolveConfigFile();
 
-    // In production we build the frontend once and let Express serve the
-    // generated static files. No dev server is started.
+    // In production we build the frontend once and serve it with Vite's own
+    // preview server on its own port (no dev server, no conflict with Express).
     if (this.#isProduction) {
       this.#container.get("logger").info("Building Vite frontend for production...");
       this.#outDir = await buildViteApp({ root: this.#root, configFile });
       this.#container.get("logger").info(`Vite build complete (output: ${this.#outDir})`);
+
+      const { preview } = await import("vite");
+      this.#viteServer = await preview({
+        root: this.#root,
+        configFile,
+        preview: {
+          port: this.#port,
+          strictPort: false,
+        },
+      });
+
+      const previewPort = this.#viteServer.httpServer?.address()?.port ?? this.#port;
+      this.#container.get("logger").info(
+        `Vite preview server running on http://localhost:${previewPort} (root: ${this.#root})`
+      );
       return;
     }
 
