@@ -46,5 +46,9 @@
     "umzug": "^3.8.2",
     "vite": "^8.0.2",
     "zustand": "^5.0.12"
+  },
+  "optionalDependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "ioredis": "^5.6.1"
   }
 }

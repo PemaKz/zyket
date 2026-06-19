@@ -31,6 +31,10 @@ module.exports = class SocketIO extends Service {
     
     this.io = new Server({ cors: { origin: "*" }, maxHttpBufferSize: 10 * 1024 * 1024 });
 
+    if (process.env.REDIS_URL) {
+      await this.#attachRedisAdapter();
+    }
+
     this.io.on("connection", async (socket) => {
       const connectionGuards = (connectionHandler?.guards || []).map(mdl => this.guards[mdl])
       for (const guard of connectionGuards) {
@@ -121,6 +125,29 @@ module.exports = class SocketIO extends Service {
     this.#container.get('logger').info(`Creating guards folder at ${guardsFolder}`);
     fs.mkdirSync(guardsFolder);
     this.#container.get('template-manager').installFile('default/src/guards/default', path.join(guardsFolder, "default.js"));
+  }
+
+  async #attachRedisAdapter() {
+    let Redis, createAdapter;
+    try {
+      Redis = require("ioredis");
+      ({ createAdapter } = require("@socket.io/redis-adapter"));
+    } catch {
+      throw new Error(
+        "Redis adapter requires 'ioredis' and '@socket.io/redis-adapter'. Run: npm install ioredis @socket.io/redis-adapter"
+      );
+    }
+
+    const pubClient = new Redis(process.env.REDIS_URL);
+    const subClient = pubClient.duplicate();
+
+    await Promise.all([
+      new Promise((resolve, reject) => pubClient.once("ready", resolve).once("error", reject)),
+      new Promise((resolve, reject) => subClient.once("ready", resolve).once("error", reject)),
+    ]);
+
+    this.io.adapter(createAdapter(pubClient, subClient));
+    this.#container.get("logger").info(`Socket.IO Redis adapter connected to ${process.env.REDIS_URL}`);
   }
 
   stop() {
