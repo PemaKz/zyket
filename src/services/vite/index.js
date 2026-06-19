@@ -39,6 +39,10 @@ module.exports = class Vite extends Service {
         preview: {
           port: this.#port,
           strictPort: false,
+          // Listen on 0.0.0.0 so a reverse proxy can reach it, and accept
+          // requests for any Host (the proxy forwards the public domain).
+          host: true,
+          allowedHosts: true,
         },
       });
 
@@ -57,6 +61,8 @@ module.exports = class Vite extends Service {
       server: {
         port: this.#port,
         strictPort: false,
+        host: true,
+        allowedHosts: true,
       },
     });
 
