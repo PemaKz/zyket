@@ -64,6 +64,10 @@ module.exports = class AuthService extends Service {
     return [];
   }
 
+  get organizationEnabled() {
+    return true;
+  }
+
   get socialProviders() {
     return {}
   }
@@ -107,22 +111,24 @@ module.exports = class AuthService extends Service {
       plugins: [
         admin(),
         bearer(),
-        organization({
-          schema: {
-            organization: {
-              additionalFields: this.organizationAdditionalFields
+        ...(this.organizationEnabled ? [
+          organization({
+            schema: {
+              organization: {
+                additionalFields: this.organizationAdditionalFields
+              },
+              member: {
+                additionalFields: this.memberAdditionalFields
+              }
             },
-            member: { 
-              additionalFields: this.memberAdditionalFields
+            allowUserToCreateOrganization: async (user) => {
+              return await this.allowUserToCreateOrganization(user);
+            },
+            sendInvitationEmail: async (data) => {
+              return await this.sendInvitationEmail(data);
             }
-          },
-          allowUserToCreateOrganization: async (user) => {
-            return await this.allowUserToCreateOrganization(user);
-          },
-          sendInvitationEmail: async (data) => {
-            return await this.sendInvitationEmail(data);
-          }
-        }),
+          })
+        ] : []),
         ...this.plugins,
       ],
       socialProviders: this.socialProviders,
