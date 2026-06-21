@@ -9,6 +9,7 @@ module.exports = class BullMQ extends Service  {
   #container
   queues = {};
   queuesEvents = {};
+  workers = [];
 
   constructor(container) {
     super("queues");
@@ -35,13 +36,40 @@ module.exports = class BullMQ extends Service  {
         this.#container.get('logger').warn(`Queue ${wkr.queueName} not found for worker ${wkr.name}, skipping...`);
         continue;
       }
-      new BullWorker(
-        wkr.queueName,
-        async (job) => wkr.handle({ container: this.#container, job }),
-        this.#connection()
-      );
-      this.#container.get('logger').info(`Worker ${wkr.name} for queue ${wkr.queueName} initialized`);
+
+      const instances = await this.#resolveInstances(wkr);
+      for (const [index, instance] of instances.entries()) {
+        const options = await this.#resolveOptions(wkr, instance, index);
+        const bullWorker = new BullWorker(
+          wkr.queueName,
+          async (job) => wkr.handle({ container: this.#container, job, instance, index }),
+          { ...this.#connection(), ...options }
+        );
+        this.workers.push(bullWorker);
+      }
+      this.#container.get('logger').info(`Worker ${wkr.name} for queue ${wkr.queueName} initialized with ${instances.length} instance(s)`);
     }
+  }
+
+  async #resolveInstances(wkr) {
+    let instances = wkr.instances;
+    if (typeof instances === 'function') {
+      instances = await instances({ container: this.#container });
+    }
+    if (typeof instances === 'number' && instances > 0) {
+      return Array.from({ length: instances }, () => ({}));
+    }
+    if (Array.isArray(instances) && instances.length) {
+      return instances;
+    }
+    return [{}];
+  }
+
+  async #resolveOptions(wkr, instance, index) {
+    const options = typeof wkr.options === 'function'
+      ? await wkr.options({ container: this.#container, instance, index })
+      : wkr.options;
+    return options || {};
   }
 
   async addJob(queueName, jobName, data, opts = {}, waitForCompletion = false) {
