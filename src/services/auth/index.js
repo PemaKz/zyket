@@ -4,6 +4,7 @@ const { betterAuth } = require("better-auth");
 const { admin, bearer, organization } = require("better-auth/plugins");
 const { Pool } = require("pg");
 const path = require("path");
+const crypto = require("crypto");
 
 module.exports = class AuthService extends Service {
   #container;
@@ -24,13 +25,26 @@ module.exports = class AuthService extends Service {
     express.regiterRawAllRoutes("/api/auth/*splat", toNodeHandler(this.auth));
   }
 
+  // Resolve the current better-auth session from raw Node request headers
+  // (e.g. `request.headers` or `socket.handshake.headers`). Lets application
+  // code check sessions without importing better-auth directly.
+  async getSession(headers) {
+    const { fromNodeHeaders } = require('better-auth/node');
+    return this.client.api.getSession({ headers: fromNodeHeaders(headers) });
+  }
+
   #addAuthEnvVariables() {
     const EnvManager = require('../../utils/EnvManager');
     const envPath = path.join(process.cwd(), '.env');
     
-    const secretAdded = EnvManager.addEnvVariable(envPath, 'AUTH_SECRET', 'change-this-secret-in-production');
+    // Generate a strong, unique secret per project instead of a static value.
+    const generatedSecret = crypto.randomBytes(32).toString('hex');
+    const secretAdded = EnvManager.addEnvVariable(envPath, 'AUTH_SECRET', generatedSecret);
     if (secretAdded) {
-      this.#container.get('logger').info('Added AUTH_SECRET to .env file');
+      // dotenv already loaded before this file was written, so make the freshly
+      // generated value available for this first run too.
+      process.env.AUTH_SECRET = generatedSecret;
+      this.#container.get('logger').info('Generated a random AUTH_SECRET and added it to .env file');
     }
 
     const originsAdded = EnvManager.addEnvVariable(envPath, 'TRUSTED_ORIGINS', 'http://localhost:5173,http://localhost:3000');
@@ -42,6 +56,15 @@ module.exports = class AuthService extends Service {
     if (betterAuthUrlAdded) {
       this.#container.get('logger').info('Added BETTER_AUTH_URL to .env file');
     }
+  }
+
+  #requireAuthSecret() {
+    const secret = process.env.AUTH_SECRET;
+    // Fail closed: never fall back to a hard-coded/shared secret.
+    if (!secret || secret === 'change-this-secret-in-production' || secret === 'your-secret-key-change-in-production') {
+      throw new Error('AUTH_SECRET is missing or insecure. Set a strong, unique AUTH_SECRET in your .env file.');
+    }
+    return secret;
   }
 
   #getDatabaseConnection() {
@@ -66,6 +89,10 @@ module.exports = class AuthService extends Service {
 
   get organizationEnabled() {
     return true;
+  }
+
+  get requireEmailVerification() {
+    return false;
   }
 
   get socialProviders() {
@@ -106,6 +133,17 @@ module.exports = class AuthService extends Service {
 
   get auth() {
     const cache = this.#container.get('cache');
+
+    // Environment-aware cookie security:
+    // - Cross-domain front/back (different sites): set AUTH_CROSS_DOMAIN=true ->
+    //   sameSite "none" + secure + cross-subdomain (requires HTTPS).
+    // - Otherwise (local dev, or same-site/same-domain prod): sameSite "lax" and
+    //   secure only in production, so cookies work over http://localhost in dev.
+    const crossDomain = process.env.AUTH_CROSS_DOMAIN === 'true';
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieSameSite = crossDomain ? 'none' : 'lax';
+    const cookieSecure = crossDomain || isProduction;
+
     return betterAuth({
       hooks: this.hooks,
       plugins: [
@@ -134,32 +172,12 @@ module.exports = class AuthService extends Service {
       socialProviders: this.socialProviders,
       database: this.#getDatabaseConnection(),
       advanced: {
-        crossSubDomainCookies: {
-          enabled: true,
-        },
-        cookie: {
-          sameSite: "none",
-          secure: true,
-          path: "/",
-          state: {
-            attributes: {
-              sameSite: "none",
-              secure: true,
-            }
-          }
-        },
+        ...(crossDomain ? { crossSubDomainCookies: { enabled: true } } : {}),
         defaultCookieAttributes: {
-          secure: true,
-          sameSite: "none",
+          sameSite: cookieSameSite,
+          secure: cookieSecure,
+          httpOnly: true,
         },
-        cookies: {
-          state: {
-            attributes: {
-              sameSite: "none",
-              secure: true,
-            }
-          }
-        }
       },
       secondaryStorage: {
         get: async (key) => {
@@ -175,7 +193,7 @@ module.exports = class AuthService extends Service {
       },
       emailAndPassword: {
         enabled: true,
-        requireEmailVerification: false,
+        requireEmailVerification: this.requireEmailVerification,
         sendResetPassword: async ({ user, url, token }, request) => this.sendResetPasswordEmail({ user, url, token }, request),
       },
       emailVerification: {
@@ -195,7 +213,7 @@ module.exports = class AuthService extends Service {
         updateAge: 60 * 60 * 24
       },
       baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
-      secret: process.env.AUTH_SECRET || 'your-secret-key-change-in-production',
+      secret: this.#requireAuthSecret(),
       trustedOrigins: process.env.TRUSTED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:6632']
     })
   }

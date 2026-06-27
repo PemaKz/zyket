@@ -1,5 +1,13 @@
 const { Route } = require('../../../services/express');
 
+// Reject object keys that try to escape the bucket prefix or are malformed,
+// before they reach the S3 client.
+function isUnsafeKey(key) {
+  if (typeof key !== 'string' || key.length === 0) return true;
+  if (key.includes('\\') || key.startsWith('/')) return true;
+  return key.split('/').some((segment) => segment === '..' || segment === '.');
+}
+
 module.exports = class InfoRoute extends Route {
   s3;
   bucketName;
@@ -17,6 +25,11 @@ module.exports = class InfoRoute extends Route {
     
     try {
       const { fileName } = request.params;
+
+      if (isUnsafeKey(fileName)) {
+        return { success: false, message: 'Invalid file name', status: 400 };
+      }
+
       const stat = await this.getFileStat(this.s3, fileName);
       
       return {

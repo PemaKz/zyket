@@ -3,22 +3,33 @@ const { Route } = require('../../../services/express');
 module.exports = class DeleteRoute extends Route {
   s3;
   bucketName;
+  maxDeleteBatch;
 
-  constructor(path, s3, bucketName) {
+  constructor(path, s3, bucketName, maxDeleteBatch = 100) {
     super(path);
     this.s3 = s3;
     this.bucketName = bucketName;
+    this.maxDeleteBatch = maxDeleteBatch;
   }
 
   async delete({ container, request }) {
     const logger = container.get('logger');
     const { fileName, fileNames } = request.body;
-    
+
     // Support both single file and multiple files
     const filesToDelete = fileNames || (fileName ? [fileName] : []);
-    
+
     if (!Array.isArray(filesToDelete) || filesToDelete.length === 0) {
       return { success: false, message: 'fileName or fileNames array is required', status: 400 };
+    }
+
+    // Cap the batch size to avoid mass-deletion / resource-exhaustion in a single request.
+    if (filesToDelete.length > this.maxDeleteBatch) {
+      return {
+        success: false,
+        message: `Too many files in a single request. Maximum allowed is ${this.maxDeleteBatch}`,
+        status: 400
+      };
     }
 
     const deletePromises = filesToDelete.map(file => 

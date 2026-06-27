@@ -29,7 +29,9 @@ module.exports = class SocketIO extends Service {
     this.#container.get('logger').debug(`Guards: ${guards.map(mdl => mdl.name).join(", ")}`);
     this.#container.get('logger').debug(`Handlers: ${handlers.map(hdl => hdl.event).join(", ")}`);
     
-    this.io = new Server({ cors: { origin: "*" }, maxHttpBufferSize: 10 * 1024 * 1024 });
+    // Configurable max payload size (defaults to 10mb) to reduce DoS surface.
+    const maxHttpBufferSize = Number(process.env.SOCKET_MAX_HTTP_BUFFER_SIZE) || 10 * 1024 * 1024;
+    this.io = new Server({ cors: { origin: "*" }, maxHttpBufferSize });
 
     if (process.env.REDIS_URL) {
       await this.#attachRedisAdapter();

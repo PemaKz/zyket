@@ -18,8 +18,12 @@ module.exports = class EnvManager {
     const envsToCreate = {
       DEBUG: true,
       PORT: 3000,
+      HTTP_JSON_LIMIT: '10mb',
+      SOCKET_MAX_HTTP_BUFFER_SIZE: 10 * 1024 * 1024,
       DISABLE_SOCKET: true,
       DISABLE_EXPRESS: false,
+      DISABLE_SWAGGER: false,
+      SWAGGER_PASSWORD: '',
       DISABLE_EVENTS: true,
       DISABLE_BULLMQ: true,
       DISABLE_SCHEDULER: true,
@@ -65,5 +69,24 @@ module.exports = class EnvManager {
     envContent += `${key}=${value}\n`;
     fs.writeFileSync(secretsPath, envContent);
     return true; // Key added successfully
+  }
+
+  // Upsert: replace the value if the key exists, otherwise append it.
+  static setEnvVariable(secretsPath, key, value) {
+    if (!fs.existsSync(secretsPath)) {
+      this.createEnvFile(secretsPath);
+    }
+
+    let envContent = fs.readFileSync(secretsPath, 'utf-8');
+    const keyRegex = new RegExp(`^${key}=.*$`, 'm');
+
+    if (keyRegex.test(envContent)) {
+      envContent = envContent.replace(keyRegex, `${key}=${value}`);
+    } else {
+      if (envContent.length && !envContent.endsWith('\n')) envContent += '\n';
+      envContent += `${key}=${value}\n`;
+    }
+
+    fs.writeFileSync(secretsPath, envContent);
   }
 }

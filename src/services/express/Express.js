@@ -29,19 +29,36 @@ module.exports = class Express extends Service {
     this.#httpServer = httpServer;
     this.#app = express();
 
-    this.#app.use(express.json({ limit: `100mb` }))
+    // Configurable JSON body limit (defaults to 10mb) to reduce DoS surface.
+    this.#app.use(express.json({ limit: process.env.HTTP_JSON_LIMIT || '10mb' }))
 
     const corsOptions = await this.#loadCorsOrCreateDefault();
 
     if(corsOptions) this.#app.use(cors(corsOptions));
 
-    // Swagger setup
-    const swaggerOptions = {
-      ...(await this.#loadSwaggerOrCreateDefault()),
-    };
+    // Swagger setup (optional). Can be fully disabled, or protected with
+    // HTTP Basic auth by setting SWAGGER_PASSWORD.
+    if (process.env.DISABLE_SWAGGER !== 'true') {
+      const swaggerOptions = {
+        ...(await this.#loadSwaggerOrCreateDefault()),
+      };
 
-    const swaggerDocs = swaggerJsDoc(swaggerOptions);
-    this.#app.use(process?.env?.SWAGGER_PATH || "/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+      const swaggerDocs = swaggerJsDoc(swaggerOptions);
+      const swaggerPath = process?.env?.SWAGGER_PATH || "/docs";
+      const swaggerMiddlewares = [];
+
+      if (process.env.SWAGGER_PASSWORD) {
+        const basicAuth = require("express-basic-auth");
+        swaggerMiddlewares.push(basicAuth({
+          users: { [process.env.SWAGGER_USER || 'admin']: process.env.SWAGGER_PASSWORD },
+          challenge: true,
+        }));
+      } else {
+        this.#container.get('logger').warn(`Swagger docs are exposed without authentication at ${swaggerPath}. Set SWAGGER_PASSWORD to protect them or DISABLE_SWAGGER=true to disable.`);
+      }
+
+      this.#app.use(swaggerPath, ...swaggerMiddlewares, swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+    }
 
     const routes = await this.#loadRoutesFromFolder(path.join(process.cwd(), "src", "routes"));
 
@@ -64,8 +81,8 @@ module.exports = class Express extends Service {
             try { 
               await mw.handle({ container: this.#container, request: req, response: res, next })
             } catch (error) {
-              this.#container.get('logger').error(`Error in middleware for route [${methodName}] ${route.path}: ${error.message}`);
-              return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
+              this.#container.get('logger').error(`Error in middleware for route [${methodName}] ${route.path}: ${error.stack || error.message}`);
+              return res.status(500).json({ success: false, message: 'Internal Server Error' });
             }
           }), 
           async (req, res) => {
@@ -87,8 +104,8 @@ module.exports = class Express extends Service {
                 success: routeResponse?.success !== false,
               });
             } catch (error) {
-              this.#container.get('logger').error(`Error in route [${methodName}] ${route.path}: ${error.message}`);
-              return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
+              this.#container.get('logger').error(`Error in route [${methodName}] ${route.path}: ${error.stack || error.message}`);
+              return res.status(500).json({ success: false, message: 'Internal Server Error' });
             }
           });
         }
@@ -120,8 +137,8 @@ module.exports = class Express extends Service {
             try { 
               await mw.handle({ container: this.#container, request: req, response: res, next })
             } catch (error) {
-              this.#container.get('logger').error(`Error in middleware for route [${methodName}] ${route.path}: ${error.message}`);
-              return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
+              this.#container.get('logger').error(`Error in middleware for route [${methodName}] ${route.path}: ${error.stack || error.message}`);
+              return res.status(500).json({ success: false, message: 'Internal Server Error' });
             }
           }),
           async (req, res) => {
@@ -143,8 +160,8 @@ module.exports = class Express extends Service {
                 success: routeResponse?.success !== false,
               });
             } catch (error) {
-              this.#container.get('logger').error(`Error in route [${methodName}] ${route.path}: ${error.message}`);
-              return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
+              this.#container.get('logger').error(`Error in route [${methodName}] ${route.path}: ${error.stack || error.message}`);
+              return res.status(500).json({ success: false, message: 'Internal Server Error' });
             }
           });
       }

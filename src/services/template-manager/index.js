@@ -13,6 +13,7 @@ module.exports = class TemplateManager extends Service {
   async boot() {
     const zyketTemplates = await fg(['**/*'], {
       cwd: path.join(__dirname, '../../templates'),
+      dot: true, // include dotfiles like .env.example
     });
     console.log('Found templates:', zyketTemplates);
     for (const template of zyketTemplates) {

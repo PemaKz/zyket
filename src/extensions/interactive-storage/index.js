@@ -15,13 +15,15 @@ module.exports = class InteractiveStorageExtension extends Extension {
   path;
   maxFileSize;
   middlewares;
+  maxDeleteBatch;
 
-  constructor({ path = '/storage', bucketName = 'dropbox', maxFileSize = 100 * 1024 * 1024, middlewares = [] } = {}) {
+  constructor({ path = '/storage', bucketName = 'dropbox', maxFileSize = 100 * 1024 * 1024, middlewares = [], maxDeleteBatch = 100 } = {}) {
     super("InteractiveStorageExtension");
     this.path = path || '/storage';
     InteractiveStorageExtension.bucketName = bucketName;
     this.maxFileSize = maxFileSize;
     this.middlewares = middlewares || [];
+    this.maxDeleteBatch = maxDeleteBatch;
   }
 
   load(container) {
@@ -47,15 +49,24 @@ module.exports = class InteractiveStorageExtension extends Extension {
       new BrowseRoute(`${this.path}/browse`, s3, InteractiveStorageExtension.bucketName, normalizePath, listFilesAndFolders),
       new DownloadRoute(`${this.path}/download/:fileName`, s3, InteractiveStorageExtension.bucketName, getFileStat),
       new InfoRoute(`${this.path}/info/:fileName`, s3, InteractiveStorageExtension.bucketName, getFileStat),
-      new DeleteRoute(`${this.path}/delete`, s3, InteractiveStorageExtension.bucketName),
+      new DeleteRoute(`${this.path}/delete`, s3, InteractiveStorageExtension.bucketName, this.maxDeleteBatch),
       new CreateFolderRoute(`${this.path}/create-folder`, s3, InteractiveStorageExtension.bucketName, normalizePath),
-      new DeleteFolderRoute(`${this.path}/delete-folder`, s3, InteractiveStorageExtension.bucketName, normalizePath, listFiles)
+      new DeleteFolderRoute(`${this.path}/delete-folder`, s3, InteractiveStorageExtension.bucketName, normalizePath, listFiles, this.maxDeleteBatch)
     ];
 
-    // Add multer middleware to upload route
-    routes[0].middlewares = {
-      post: [new MulterMiddleware(this.maxFileSize)]
-    };
+    // Apply the user-provided middlewares (e.g. authentication) to every
+    // storage route and method. They run before the route handler.
+    const userMiddlewares = this.middlewares || [];
+    for (const route of routes) {
+      route.middlewares = {
+        get: [...userMiddlewares],
+        post: [...userMiddlewares],
+        delete: [...userMiddlewares]
+      };
+    }
+
+    // Add multer middleware to the upload route, after any auth middlewares.
+    routes[0].middlewares.post = [...userMiddlewares, new MulterMiddleware(this.maxFileSize)];
 
     // Register routes using the express service pattern
     express.registerRoutes(routes);
@@ -148,8 +159,13 @@ module.exports = class InteractiveStorageExtension extends Extension {
   }
 
   #normalizePath(path) {
-    // Remove leading/trailing slashes and normalize
-    return path.replace(/^\/+|\/+$/g, '').replace(/\/+/g, '/');
+    // Normalize slashes and strip any path-traversal segments so a crafted
+    // "folder"/"folderPath" value cannot escape the intended prefix.
+    return String(path)
+      .replace(/\\/g, '/')
+      .split('/')
+      .filter((segment) => segment && segment !== '.' && segment !== '..')
+      .join('/');
   }
 
   async #getFileStat(s3, fileName) {
