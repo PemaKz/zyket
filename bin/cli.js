@@ -118,21 +118,49 @@ function depsForTemplate(template) {
 	return deps;
 }
 
+// `node-dependency-injection` loads @typescript-eslint/typescript-estree@5 at
+// require time, which reads `ts.SyntaxKind` off whatever `typescript` npm
+// hoisted. TypeScript 7 dropped that CJS shape, so an unpinned tree dies on
+// boot with "Cannot read properties of undefined (reading 'BarBarToken')".
+// zyket depends on typescript ^5 for this reason; the override is what keeps an
+// already-resolved lockfile from pulling 7.x back in.
+const TYPESCRIPT_PIN = ZYKET_PKG.dependencies?.typescript || '^5.9.3';
+
+function projectName() {
+	const raw = path.basename(process.cwd()).toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^[._-]+/, '');
+	return raw || 'zyket-app';
+}
+
+// `npm install zyket` already leaves a package.json behind, so merging into an
+// existing file is the normal path, not the exception. Only fill in what's
+// missing — never clobber versions or scripts the user already chose.
 function ensurePackageJson(template) {
 	const packageJsonPath = path.join(process.cwd(), 'package.json');
-	if (fs.existsSync(packageJsonPath)) return;
-	const packageJson = {
-		name: path.basename(process.cwd()),
+	let packageJson = {};
+	if (fs.existsSync(packageJsonPath)) {
+		try {
+			packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) || {};
+		} catch {
+			console.log('[ZYKET] package.json is not valid JSON — leaving it untouched.');
+			return;
+		}
+	}
+	const defaults = {
+		name: projectName(),
 		version: '1.0.0',
 		description: 'Zyket application',
 		main: 'index.js',
-		scripts: { dev: 'node index.js' },
 		keywords: [],
 		author: '',
 		license: 'ISC',
-		dependencies: depsForTemplate(template),
 	};
-	fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+	for (const [key, value] of Object.entries(defaults)) {
+		if (packageJson[key] === undefined) packageJson[key] = value;
+	}
+	packageJson.scripts = { dev: 'node index.js', ...packageJson.scripts };
+	packageJson.dependencies = { ...depsForTemplate(template), ...packageJson.dependencies };
+	packageJson.overrides = { typescript: TYPESCRIPT_PIN, ...packageJson.overrides };
+	fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 
 function npmInstall() {

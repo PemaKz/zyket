@@ -10,8 +10,8 @@
     {
       "name": "zyket",
       "source": "./plugin",
-      "description": "Generate Zyket framework components — handlers, guards, routes, middlewares, services, events, schedulers, workers, and extensions.",
-      "version": "1.0.0"
+      "description": "Build and scaffold Zyket apps — initialize from templates, wire services/auth/security (build), and generate components like routes, handlers, guards, services, and workers (generate).",
+      "version": "1.1.0"
     }
   ]
 }

@@ -1,279 +1,175 @@
 # Zyket
 
-Zyket is a Node.js framework designed to simplify the development of real-time applications with Socket.IO and Express. Inspired by the structured approach of frameworks like Symfony, Zyket provides a robust, service-oriented architecture for building scalable and maintainable server-side applications.
+Zyket is a service-oriented Node.js framework for building real-time and REST applications with **Express 5**, **Socket.IO**, **better-auth**, and **Sequelize/BullMQ/MinIO**. Inspired by Symfony, it pairs a dependency-injection container with filesystem-based auto-discovery: drop a file in the right folder and the framework wires it up.
 
-Upon initial boot, Zyket automatically scaffolds a default project structure, including handlers, routes, and configuration files, allowing you to get started immediately.
+> **Building with an AI agent?** See **[AGENTS.md](AGENTS.md)** for a complete, machine-readable reference, and **[SECURITY.md](SECURITY.md)** for hardening guidance.
 
-## Getting Started
-
-### Quick Start (Recommended)
-
-The easiest way to get started with Zyket is to use the CLI initialization command:
+## Getting started
 
 ```bash
-# Create a new directory for your project
-mkdir my-zyket-app
-cd my-zyket-app
-
-# Install zyket
+mkdir my-app && cd my-app
 npm install zyket
 
-# Initialize the project (one command!)
+# Initialize from a template (interactive picker)
 npx zyket init
-
-# Start your application
-npm run dev
+# …or pick one directly:
+npx zyket init api-rest      # default | api-rest | saas-multitenant | realtime-chat
 ```
 
-The `init` command will:
-- Create an `index.js` file with the kernel boilerplate
-- Generate a `.env` file with sensible defaults
-- Create a `package.json` if one doesn't exist
-- Set up your project ready to run
-
-You can also run `npx zyket` without arguments for an interactive menu with more options.
-
-### Manual Setup (Alternative)
-
-If you prefer to set up manually, install Zyket in your project:
+`init` scaffolds the template, generates a `.env`, writes `package.json` with the right dependencies, and installs them. Templates that ship authentication need their tables created once:
 
 ```bash
-npm i zyket
+npx @better-auth/cli migrate
+node index.js
 ```
 
-Then, create an `index.js` file and boot the Zyket Kernel:
+### Templates
 
-```javascript
+| Template | What you get |
+|----------|--------------|
+| `default` | General starter (backend + optional React frontend) |
+| `api-rest` | Backend-only REST API with auth and a protected CRUD resource |
+| `saas-multitenant` | Multi-tenant SaaS (organizations, roles) + React dashboard |
+| `realtime-chat` | Authenticated real-time chat (Socket.IO) + React UI |
+
+### Manual boot
+
+```js
 // index.js
 const { Kernel } = require("zyket");
 
-// Instantiate the kernel
-const kernel = new Kernel();
-
-// Boot the kernel to start all services
-kernel.boot().then(() => {
-    console.log("Kernel booted successfully!");
+const kernel = new Kernel({
+  services: [
+    ["auth", require("./src/services/auth"), ["@service_container"]],
+  ],
 });
+
+kernel.boot().then(() => console.log("Kernel booted!"));
 ```
 
-When you run this for the first time, Zyket will create a default `.env` file and a `src` directory containing boilerplate for routes, handlers, guards, and middlewares.
+On first run Zyket creates a `.env` and a `src/` directory with boilerplate.
 
-## Core Concepts
+## Core concepts
 
-Zyket is built around a few key architectural concepts:
+- **Routes & Middlewares** — REST endpoints via Express, auto-discovered from `src/routes`.
+- **Handlers & Guards** — Socket.IO events and their authorization, from `src/handlers` / `src/guards`.
+- **Services** — reusable units managed by a DI container (`logger`, `database`, `cache`, `s3`, `events`, `scheduler`, `bullmq`, `socketio`, `express`, `auth`).
+- **Extensions** — post-boot plugins (e.g. BullBoard, interactive storage).
+- **Templates & CLI** — scaffold whole projects or individual components.
 
-*   **Socket.IO Handlers & Guards**: For managing real-time WebSocket events and their authorization.
-*   **Express Routes & Middlewares**: For handling traditional RESTful API endpoints.
-*   **Services**: Reusable components that are managed by a dependency injection container.
-*   **CLI**: A command-line tool to scaffold features from templates.
+### Routes
 
-### Socket.IO Development
+File path maps to the URL: `src/routes/index.js` → `/`, `src/routes/users/[id].js` → `/users/:id`. Methods: `get`, `post`, `put`, `delete`.
 
-#### Handlers
+```js
+const { Route, RequireAuthMiddleware } = require("zyket");
 
-Handlers are classes that process incoming Socket.IO events. The name of the handler file (e.g., `message.js`) determines the event it listens to (`message`).
-
-```javascript
-// src/handlers/message.js
-const { Handler } = require("zyket");
-
-module.exports = class MessageHandler extends Handler {
-  // Array of guard names to execute before the handler
-  guards = ["default"];
-
-  async handle({ container, socket, data, io }) {
-    const logger = container.get("logger");
-    logger.info(`Received message: ${JSON.stringify(data)}`);
-    socket.emit("response", { received: data });
-  }
-};
-```
-
-#### Guards
-
-Guards are used to protect Socket.IO handlers or the initial connection. They run before the handler's `handle` method and are ideal for authorization logic.
-
-```javascript
-// src/guards/default.js
-const { Guard } = require("zyket");
-
-module.exports = class DefaultGuard extends Guard {
-  async handle({ container, socket, io }) {
-    container.get("logger").info(`Executing default guard for socket ${socket.id}`);
-    
-    // Example: Check for an auth token. If invalid, disconnect the user.
-    // if (!socket.token) {
-    //   socket.disconnect();
-    // }
-  }
-};
-```
-
-### Express API Development
-
-#### Routes
-
-Routes handle HTTP requests. The file path maps directly to the URL endpoint. For example, `src/routes/index.js` handles requests to `/`, and `src/routes/[test]/message.js` handles requests to `/:test/message`.
-
-```javascript
-// src/routes/index.js
-const { Route } = require("zyket");
-const DefaultMiddleware = require("../middlewares/default");
-
-module.exports = class DefaultRoute extends Route {
-  // Apply middlewares to specific HTTP methods
-  middlewares = {
-    get: [ new DefaultMiddleware() ],
-    post: [ new DefaultMiddleware() ]
-  }
+module.exports = class extends Route {
+  middlewares = { post: [new RequireAuthMiddleware()] };
 
   async get({ container, request }) {
-    container.get("logger").info("Default route GET");
-    return { test: "Hello World GET!" };
+    return { items: [] };                       // → { success: true, items: [] }
   }
-
   async post({ container, request }) {
-    container.get("logger").info("Default route POST");
-    return { test: "Hello World POST!" };
+    if (!request.body.name) return { success: false, message: "name required", status: 400 };
+    return { created: true, status: 201 };
   }
 };
 ```
 
-#### Middlewares
+Return an object (wrapped as `{ success: true, ... }`), set `status` to change the HTTP code, return a `Buffer` for a download, or `new RedirectResponse(url)` to redirect.
 
-Middlewares process the request before it reaches the route handler. They follow the standard Express middleware pattern.
+### Middlewares
 
-```javascript
-// src/middlewares/default.js
+```js
 const { Middleware } = require("zyket");
 
-module.exports = class DefaultMiddleware extends Middleware {
+module.exports = class extends Middleware {
   async handle({ container, request, response, next }) {
-    container.get("logger").info("Default Express middleware executing");
-    next(); // Pass control to the next middleware or route handler
+    next(); // respond to block, or next() to continue
   }
 };
 ```
+
+### Socket.IO handlers & guards
+
+```js
+// src/handlers/message.js  → "message" event
+const { Handler } = require("zyket");
+
+module.exports = class extends Handler {
+  guards = ["auth"];
+  async handle({ container, socket, data, io }) {
+    io.emit("message", data);
+    return { ok: true };
+  }
+};
+```
+
+```js
+// src/guards/auth.js — reuse the built-in session guard
+module.exports = require("zyket").AuthGuard;
+```
+
+## Authentication
+
+Zyket ships first-class auth via [better-auth](https://better-auth.com) mounted at `/api/auth/*`, with the admin, bearer, and (optional) organization plugins. Customize by subclassing `AuthService`; protect routes/sockets with `RequireAuthMiddleware`, `RequireAdminMiddleware`, and `AuthGuard`.
+
+```js
+const { Route, RequireAdminMiddleware } = require("zyket");
+
+module.exports = class extends Route {
+  middlewares = { get: [new RequireAdminMiddleware()] };
+  async get() { return { secret: "admins only" }; }
+};
+```
+
+Cookies are environment-aware: `sameSite=lax` in local dev (works over `http://localhost`), and `sameSite=none; secure` when `AUTH_CROSS_DOMAIN=true` for cross-domain HTTPS deployments. See [AGENTS.md §6](AGENTS.md#6-authentication-better-auth).
 
 ## Services
 
-Services are the cornerstone of Zyket's architecture, providing reusable functionality across your application. Zyket includes several default services and allows you to register your own.
+Default services activate from environment variables (see [AGENTS.md §3–4](AGENTS.md#3-environment-variables)). Register your own in the Kernel:
 
-### Custom Services
-
-You can create your own services by extending the `Service` class and registering it with the Kernel.
-
-```javascript
-// src/services/MyCustomService.js
+```js
 const { Service } = require("zyket");
 
-module.exports = class MyCustomService extends Service {
-    constructor() {
-        super("my-custom-service");
-    }
-
-    async boot() {
-        console.log("MyCustomService has been booted!");
-    }
-
-    doSomething() {
-        return "Something was done.";
-    }
-}
-```
-
-Register the service in your main `index.js` file:
-
-```javascript
-// index.js
-const { Kernel } = require("zyket");
-const MyCustomService = require("./src/services/MyCustomService");
-
-const kernel = new Kernel({
-    services: [
-        // [name, class, [constructor_args]]
-        ["my-service", MyCustomService, []]
-    ]
-});
-
-kernel.boot();
-```
-Services are reusable components specified in the kernel configuration. Each service must include a boot() function that is executed when the kernel starts.
-
-```javascript
-module.exports = class LoggerService {
-    this.#container;
-    
-    boot(container, enableLogging = true) {
-        this.#container = container;
-        console.log("LoggerService Booted");
-    }
-
-    info(message) {
-        if(!enableLogging) return;
-        console.log(`[INFO]: ${message}`);
-    }
+module.exports = class MyService extends Service {
+  #container;
+  constructor(container) { super("my-service"); this.#container = container; }
+  async boot() { /* init */ }
+  doThing() { return "done"; }
 };
 ```
 
-Then, when booting the kernel, specify the service:
-
-```javascript
-const { Kernel } = require("zyket");
-const LoggerService = require("./LoggerService");
-
+```js
 const kernel = new Kernel({
-    services: [["logger", LoggerService, ['@service_container', true]],
+  services: [["my-service", MyService, ["@service_container"]]],
 });
-
-kernel.boot().then(() => console.log(`Kernel Booted`));
 ```
 
-## Default Services
-Zyket includes some default services that provide essential functionality. These services can be overridden or extended if needed.
+Default services and their activation:
 
-#### Cache Services
-- **Name** `cache`
-- **Description** Provides caching functionality using a Redis adapter.
-- **Configuration** Add `CACHE_URL` in your `.env` file to activate caching.
+| Service | Env to enable |
+|---------|---------------|
+| `database` | `DATABASE_URL` (+ `DATABASE_DIALECT`, default `sqlite`) |
+| `cache` | always (`CACHE_URL=redis://…` for Redis, else in-memory) |
+| `s3` | `S3_ENDPOINT` + `S3_ACCESS_KEY` + `S3_SECRET_KEY` (MinIO) |
+| `socketio` | `DISABLE_SOCKET=false` |
+| `bullmq` | `DISABLE_BULLMQ=false` + `QUEUES=...` |
+| `scheduler` | `DISABLE_SCHEDULER=false` |
+| `events` | `DISABLE_EVENTS=false` |
+| `vite` | `VITE_ROOT` + `DISABLE_VITE=false` |
+| `auth` | manual registration (requires `sqlite`/`postgresql`) |
 
-#### Database Service
-- **Name** `database`
-- **Description** Manages database connections using a MariaDB/Sequelize adapter.
-- **Configuration** Add `DATABASE_URL` in your `.env` file to enable the database connection.
+## Security
 
-#### S3 Service
-- **Name** `s3`
-- **Description** Provides S3-compatible object storage using MinIO.
-- **Configuration** Add the following variables in your `.env` file to enable the service
-    - `S3_ENDPOINT`
-    - `S3_PORT`
-    - `S3_USE_SSL`
-    - `S3_ACCESS_KEY`
-    - `S3_SECRET_KEY`
+Zyket bakes in several defaults (random per-project `AUTH_SECRET`, fail-closed BullBoard, configurable payload limits, path-traversal guards on storage). Review **[SECURITY.md](SECURITY.md)** before going to production — notably rate limiting and `helmet` are not bundled.
 
-#### Logger Service
-- **Name** `logger`
-- **Description** Handles logging for the application.
-- **Configuration**
-    - Change `LOG_DIRECTORY` in `.env` file to set a custom log directory.
-    - Set `DEBUG` in `.env` file to enable or disable debug logging.
+## Tooling for AI agents
 
-#### Socket.io Service
-- **Name** `socketio`
-- **Description** Manages the WebSocket server.
-- **Configuration** Add `PORT` in your `.env` file to define the listening port for Socket.io.
-
+- **[AGENTS.md](AGENTS.md)** — full framework reference.
+- **Claude Code plugin** (`plugin/`) — skills to scaffold and use Zyket (`generate`, `build`).
 
 ## Contributing
 
-We welcome contributions from the community! If you'd like to improve Zyket, feel free to:
-
-- Report issues and suggest features on GitHub Issues
-
-- Submit pull requests with bug fixes or enhancements
-
-- Improve the documentation
-
-Let's build a better framework together! 🚀
-
+Issues and pull requests are welcome — bug fixes, features, and documentation improvements. Let's build a better framework together. 🚀
