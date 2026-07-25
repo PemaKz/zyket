@@ -8,6 +8,7 @@ const crypto = require("crypto");
 
 module.exports = class AuthService extends Service {
   #container;
+  #authOptions;
   client;
 
   constructor(container) {
@@ -131,7 +132,77 @@ module.exports = class AuthService extends Service {
     throw new Error("allowUserToCreateOrganization method not implemented");
   }
 
+  // Run the better-auth migrations that are still pending: create missing
+  // tables and add missing columns. Same work as
+  // `npx @better-auth/cli migrate --config src/services/auth/auth.js`, but from
+  // inside the app — so adding a plugin (two-factor, jwt, …) or a new
+  // additional field only needs `await container.get('auth').migrate()`.
+  //
+  // Pass `{ dryRun: true }` to get the SQL back without touching the database.
+  // Returns { pending, tablesCreated, fieldsAdded, sql } so callers can log,
+  // assert, or refuse to boot on a dirty schema.
+  async migrate({ dryRun = false } = {}) {
+    if (!['postgresql', 'sqlite'].includes(process.env.DATABASE_DIALECT)) {
+      throw new Error('AuthService.migrate() only supports PostgreSQL and SQLite as database dialects');
+    }
+
+    const logger = this.#logger();
+    // ESM-only subpath; import() keeps this working regardless of Node's
+    // require(esm) support.
+    const { getMigrations } = await import('better-auth/db/migration');
+    const { toBeCreated, toBeAdded, runMigrations, compileMigrations } = await getMigrations(this.authOptions);
+
+    const tablesCreated = toBeCreated.map((table) => table.table);
+    const fieldsAdded = toBeAdded.flatMap(
+      (table) => Object.keys(table.fields).map((field) => `${table.table}.${field}`)
+    );
+    const pending = tablesCreated.length + fieldsAdded.length;
+
+    if (pending === 0) {
+      logger.info('Auth schema is up to date, nothing to migrate');
+      return { pending: 0, tablesCreated: [], fieldsAdded: [], sql: dryRun ? '' : undefined };
+    }
+
+    const summary = [
+      tablesCreated.length ? `tables: ${tablesCreated.join(', ')}` : null,
+      fieldsAdded.length ? `fields: ${fieldsAdded.join(', ')}` : null,
+    ].filter(Boolean).join(' | ');
+
+    if (dryRun) {
+      const sql = await compileMigrations();
+      logger.info(`Auth migrations pending (dry run, nothing applied) — ${summary}`);
+      return { pending, tablesCreated, fieldsAdded, sql };
+    }
+
+    await runMigrations();
+    logger.info(`Auth migrations applied — ${summary}`);
+    return { pending, tablesCreated, fieldsAdded };
+  }
+
+  // The logger is unavailable when the service is built outside a booted
+  // kernel (e.g. the better-auth CLI loading src/services/auth/auth.js), and
+  // the DI container throws on unknown services rather than returning null.
+  #logger() {
+    try {
+      return this.#container?.get('logger') || console;
+    } catch {
+      return console;
+    }
+  }
+
+  // Built once and reused: every access to `auth` would otherwise open another
+  // SQLite handle / pg Pool. `migrate()` needs the very same options object,
+  // since that is what defines the expected schema.
+  get authOptions() {
+    if (!this.#authOptions) this.#authOptions = this.#buildAuthOptions();
+    return this.#authOptions;
+  }
+
   get auth() {
+    return betterAuth(this.authOptions);
+  }
+
+  #buildAuthOptions() {
     const cache = this.#container.get('cache');
 
     // Environment-aware cookie security:
@@ -144,7 +215,7 @@ module.exports = class AuthService extends Service {
     const cookieSameSite = crossDomain ? 'none' : 'lax';
     const cookieSecure = crossDomain || isProduction;
 
-    return betterAuth({
+    return {
       hooks: this.hooks,
       plugins: [
         admin(),
@@ -215,10 +286,6 @@ module.exports = class AuthService extends Service {
       baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
       secret: this.#requireAuthSecret(),
       trustedOrigins: process.env.TRUSTED_ORIGINS?.split(',') || ['http://localhost:5173', 'http://localhost:6632']
-    })
-  }
-
-  get client() {
-    return this.client;
+    };
   }
 }

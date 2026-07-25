@@ -23,11 +23,24 @@ Auth endpoints are mounted by better-auth under `/api/auth/*`.
 ## Setup
 ```bash
 npm install
-# 1) Create the better-auth tables (uses src/services/auth/auth.js)
+# 1) Create the better-auth tables
 npx @better-auth/cli migrate --config src/services/auth/auth.js
 # 2) Run
 node index.js
 ```
+
+Instead of the CLI you can migrate from inside the app — it uses the
+better-auth version this project actually installs:
+
+```js
+kernel.boot().then(() => kernel.container.get('auth').migrate());
+```
+
+Re-run it after adding a better-auth plugin or an `additionalFields` entry.
+There is no `session`/`verification` table: `secondaryStorage` is wired to the
+cache service, so better-auth keeps those there (set `CACHE_URL=redis://…` if
+sessions must survive a restart).
+
 
 The `Task` table is created automatically via `sequelize.sync()` on boot.
 

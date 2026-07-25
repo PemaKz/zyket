@@ -26,9 +26,22 @@ routes, not on re-implementing what better-auth already exposes.
 ## Setup
 ```bash
 npm install
-npx @better-auth/cli migrate --config src/services/auth/auth.js   # creates user/session/organization/member tables
+npx @better-auth/cli migrate --config src/services/auth/auth.js   # creates the user/account/organization/member tables
 node index.js
 ```
+
+Instead of the CLI you can migrate from inside the app — it uses the
+better-auth version this project actually installs:
+
+```js
+kernel.boot().then(() => kernel.container.get('auth').migrate());
+```
+
+Re-run it after adding a better-auth plugin or an `additionalFields` entry.
+There is no `session`/`verification` table: `secondaryStorage` is wired to the
+cache service, so better-auth keeps those there (set `CACHE_URL=redis://…` if
+sessions must survive a restart).
+
 This starts the API on `:3000` and the Vite dashboard on `:5173`. Open
 http://localhost:5173, sign up, create an organization, set it active, and add
 projects (scoped to that organization).

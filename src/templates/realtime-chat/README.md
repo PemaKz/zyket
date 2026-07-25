@@ -17,6 +17,19 @@ npm install
 npx @better-auth/cli migrate --config src/services/auth/auth.js
 node index.js
 ```
+
+Instead of the CLI you can migrate from inside the app — it uses the
+better-auth version this project actually installs:
+
+```js
+kernel.boot().then(() => kernel.container.get('auth').migrate());
+```
+
+Re-run it after adding a better-auth plugin or an `additionalFields` entry.
+There is no `session`/`verification` table: `secondaryStorage` is wired to the
+cache service, so better-auth keeps those there (set `CACHE_URL=redis://…` if
+sessions must survive a restart).
+
 This starts the API + websocket server on `:3000` and the Vite frontend on `:5173`.
 Open http://localhost:5173, register a user, and start chatting (open two
 browsers/users to see real-time delivery).

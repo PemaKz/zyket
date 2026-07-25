@@ -291,7 +291,29 @@ module.exports = class CustomAuthService extends AuthService {
 };
 ```
 
-Requirements: `DATABASE_DIALECT` must be `sqlite` or `postgresql`. Run `npx @better-auth/cli migrate --config src/services/auth/auth.js` to create the auth tables. The `--config` flag is required: the CLI only auto-discovers `auth.js` under `src/{auth,lib,server,utils}/`, never under `src/services/`.
+Requirements: `DATABASE_DIALECT` must be `sqlite` or `postgresql`.
+
+### Creating / updating the auth tables
+
+`AuthService.migrate()` runs whatever better-auth migrations are still pending — creating missing tables and adding missing columns — using the **installed** better-auth, so it always matches the schema your app expects:
+
+```js
+kernel.boot().then(async () => {
+  const { pending, tablesCreated, fieldsAdded } = await kernel.container.get('auth').migrate();
+  // { pending: 5, tablesCreated: ['user','account','organization',…], fieldsAdded: [] }
+});
+```
+
+| Call | Effect |
+|------|--------|
+| `await auth.migrate()` | applies pending migrations; returns `{ pending, tablesCreated, fieldsAdded }` |
+| `await auth.migrate({ dryRun: true })` | applies nothing; adds `sql` (the compiled statements) to the return value |
+
+Run it after adding a plugin, an `additionalFields` entry, or on a fresh database. It is idempotent — `pending: 0` when there is nothing to do — but it is **not** automatic: nothing migrates on boot unless you call it. `sqlite`/`postgresql` only (it throws otherwise).
+
+The external CLI still works — `npx @better-auth/cli migrate --config src/services/auth/auth.js` — and `--config` is required, because the CLI only auto-discovers `auth.js` under `src/{auth,lib,server,utils}/`, never under `src/services/`. Prefer `migrate()`: the CLI bundles its own better-auth copy, so it can disagree with your installed version about the schema (it currently creates a `verification` table that better-auth 1.6 no longer uses).
+
+**No `session` / `verification` tables?** That's expected. The `auth` service always wires better-auth's `secondaryStorage` to the `cache` service, and better-auth then keeps sessions and verification tokens there instead of in SQL. With the default in-memory cache that means **sessions do not survive a restart and are not shared between instances** — set `CACHE_URL=redis://…` for durable, shared sessions, or opt back into SQL with `session: { storeSessionInDatabase: true }` / `verification: { storeInDatabase: true }` in a subclass.
 
 ### Protecting routes & sockets
 

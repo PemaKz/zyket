@@ -9,8 +9,8 @@ const kernel = new Kernel({
 });
 
 kernel.boot().then(async () => {
-  // Create the example tables (Task). better-auth tables are created via the
-  // better-auth CLI migrate step (see README).
+  // Create the example tables (Task). The better-auth tables come from
+  // `container.get('auth').migrate()` or the better-auth CLI (see README).
   await kernel.container.get('database').sync();
   kernel.container.get('logger').info('api-rest template ready — try GET /tasks');
 }).catch((error) => {
