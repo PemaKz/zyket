@@ -14,7 +14,7 @@ connect or send messages.
 ## Setup
 ```bash
 npm install
-npx @better-auth/cli migrate
+npx @better-auth/cli migrate --config src/services/auth/auth.js
 node index.js
 ```
 This starts the API + websocket server on `:3000` and the Vite frontend on `:5173`.

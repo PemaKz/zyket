@@ -25,7 +25,12 @@ module.exports = [
   s3Activated ? ["s3", S3, ["@service_container", process.env.S3_ENDPOINT, process.env.S3_PORT, process.env.S3_USE_SSL === "true", process.env.S3_ACCESS_KEY, process.env.S3_SECRET_KEY, process.env.S3_PUBLIC_BUCKETS, process.env.S3_PRIVATE_BUCKETS]] : null,
   schedulerActivated ? ["scheduler", Scheduler, ["@service_container"]] : null,
   bullmqActivated ? ["bullmq", require("./bullmq"), ["@service_container"]] : null,
+  // Express must boot BEFORE socketio: engine.io's attach() wraps whatever
+  // "request" listener is already on the HTTP server and delegates non-socket
+  // requests to it. Booting it the other way round means Express replaces
+  // engine.io's listener and the polling transport (the default first hop for
+  // every socket.io client) breaks with "xhr poll error".
+  expressActivated ? ["express", Express, ["@service_container"]] : null,
   socketActivated ? ["socketio", SocketIO, ["@service_container"]] : null,
   viteActivated ? ["vite", require("./vite"), ["@service_container", process.env.VITE_ROOT, Number(process.env.VITE_PORT) || 5173]] : null,
-  expressActivated ? ["express", Express, ["@service_container"]] : null,
 ].filter(Boolean);

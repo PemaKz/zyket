@@ -37,7 +37,7 @@ Use this skill to take a user from zero to a running Zyket application, or to ex
 
 3. **If the template uses auth** (`src/services/auth` exists), create the tables once:
    ```bash
-   npx @better-auth/cli migrate
+   npx @better-auth/cli migrate --config src/services/auth/auth.js
    ```
 
 4. **Run:** `node index.js`. The API is on `PORT` (3000); a frontend, if any, on `VITE_PORT` (5173).
@@ -61,7 +61,7 @@ Flip the env flag, then add the component. Confirm details in `AGENTS.md §3–4
 
 1. Register the auth service in `index.js`: `["auth", require("./src/services/auth"), ["@service_container"]]`.
 2. Subclass `AuthService` (see `AGENTS.md §6`) to set `organizationEnabled`, `requireEmailVerification`, email senders, etc.
-3. Require `DATABASE_DIALECT` = `sqlite` or `postgresql`; run `npx @better-auth/cli migrate`.
+3. Require `DATABASE_DIALECT` = `sqlite` or `postgresql`; run `npx @better-auth/cli migrate --config src/services/auth/auth.js`.
 4. Protect routes with `new RequireAuthMiddleware()` (or `['admin']` / `RequireAdminMiddleware`) and sockets with the `AuthGuard` (`module.exports = require('zyket').AuthGuard` in `src/guards/auth.js`; enforce connect-time auth inside `src/handlers/connection.js` via `container.get('auth').getSession(socket.handshake.headers)`).
 
 ### D. Building a feature (recipe)
@@ -79,7 +79,8 @@ Delegate individual component scaffolding to the **`generate`** skill (e.g. `/zy
 - **PATCH routes don't dispatch** — only `get/post/put/delete` methods are wired.
 - **Connection guards don't block** — do connect-time auth inside `connection.js` (throw to disconnect).
 - **`bullmq`/`scheduler`/`events` default ON when the `DISABLE_*` var is absent**, but the generated `.env` ships them as `true`. Set them to `false` explicitly to enable.
-- **Auth fails to boot** if `AUTH_SECRET` is missing or a known placeholder — let the framework generate it.
+- **Auth fails to boot** if `AUTH_SECRET` is missing or a known placeholder — let the framework generate it (it lands in `.env` when the file is created).
+- **`better-auth migrate` says "No configuration file found"** — the CLI only auto-discovers `auth.js` under `src/{auth,lib,server,utils}/`, never under `src/services/`. Always pass `--config src/services/auth/auth.js`.
 - **Frontend can't resolve `vite`/`react`/`better-auth`** — the project (not just zyket) must declare those deps; `npx zyket init` does this automatically for templates with a frontend.
 - **Boot crashes with `Cannot read properties of undefined (reading 'BarBarToken')`** — a TypeScript 7 got hoisted into the tree, which `node-dependency-injection`'s bundled `typescript-estree@5` can't read. Zyket pins `typescript` to `^5` and `npx zyket init` writes a matching `overrides` block; on a project predating that, add `"overrides": { "typescript": "^5.9.3" }` to `package.json` and reinstall.
 

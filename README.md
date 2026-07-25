@@ -19,7 +19,7 @@ npx zyket init api-rest      # default | api-rest | saas-multitenant | realtime-
 `init` scaffolds the template, generates a `.env`, writes `package.json` with the right dependencies, and installs them. Templates that ship authentication need their tables created once:
 
 ```bash
-npx @better-auth/cli migrate
+npx @better-auth/cli migrate --config src/services/auth/auth.js
 node index.js
 ```
 

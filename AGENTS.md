@@ -20,7 +20,7 @@ npx zyket init api-rest        # default | api-rest | saas-multitenant | realtim
 `init` scaffolds the chosen template's files, generates a `.env` (defaults merged with the template's `.env.example`), writes a `package.json` with the right dependencies, and runs `npm install`. Templates that ship auth need their tables created once:
 
 ```bash
-npx @better-auth/cli migrate
+npx @better-auth/cli migrate --config src/services/auth/auth.js
 node index.js
 ```
 
@@ -49,10 +49,10 @@ kernel.boot(clearConsole = true, secretsPath = "<cwd>/.env")
 ```
 
 Boot order:
-1. Load `.env` (creates one with defaults if missing).
-2. Start the HTTP server on `PORT` (default 3000).
+1. Load `.env` (creates one with defaults if missing, including a random `AUTH_SECRET`).
+2. Start the HTTP server on `PORT` (default 3000). Until the Express service attaches, requests are answered `503 {"success":false,"message":"Server is starting"}` with `Retry-After: 1` — so a health check during boot gets an answer instead of hanging. With `DISABLE_EXPRESS=true` every HTTP request keeps getting that 503.
 3. Register **core services** (auto-selected from env, see §4) then your `services`.
-4. Call `boot({ httpServer })` on every service in order.
+4. Call `boot({ httpServer })` on every service in order. `express` boots before `socketio` on purpose: engine.io wraps the existing request listener, so reversing them breaks the socket.io polling transport.
 5. Load each `extensions` instance via `extension.load(container)` (after services).
 
 `kernel.container` exposes the DI container (`container.get('name')`, `container.has('name')`).
@@ -291,7 +291,7 @@ module.exports = class CustomAuthService extends AuthService {
 };
 ```
 
-Requirements: `DATABASE_DIALECT` must be `sqlite` or `postgresql`. Run `npx @better-auth/cli migrate` to create auth tables (it reads `src/services/auth/auth.js`).
+Requirements: `DATABASE_DIALECT` must be `sqlite` or `postgresql`. Run `npx @better-auth/cli migrate --config src/services/auth/auth.js` to create the auth tables. The `--config` flag is required: the CLI only auto-discovers `auth.js` under `src/{auth,lib,server,utils}/`, never under `src/services/`.
 
 ### Protecting routes & sockets
 
@@ -402,6 +402,6 @@ See `SECURITY.md` for the full audit. Essentials before production:
 3. **Access data** — `const { Thing } = container.get('database').models;`.
 4. **Realtime (optional)** — `src/handlers/<event>.js` with `guards = ["auth"]`; broadcast with `io`.
 5. **Background (optional)** — add the queue to `QUEUES`, `DISABLE_BULLMQ=false`, add `src/workers/<name>.js`, enqueue with `container.get('bullmq').addJob(...)`.
-6. **Run** — `npx @better-auth/cli migrate` (first time) then `node index.js`.
+6. **Run** — `npx @better-auth/cli migrate --config src/services/auth/auth.js` (first time) then `node index.js`.
 
 To scaffold any component quickly, use the `generate` skill (`/zyket:generate route things/[id]`).

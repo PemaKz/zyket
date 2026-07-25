@@ -24,7 +24,7 @@ Auth endpoints are mounted by better-auth under `/api/auth/*`.
 ```bash
 npm install
 # 1) Create the better-auth tables (uses src/services/auth/auth.js)
-npx @better-auth/cli migrate
+npx @better-auth/cli migrate --config src/services/auth/auth.js
 # 2) Run
 node index.js
 ```

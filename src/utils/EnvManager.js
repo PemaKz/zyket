@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 
 module.exports = class EnvManager {
   static load(secretsPath) {
@@ -43,6 +44,10 @@ module.exports = class EnvManager {
       VITE_ROOT: './frontend',
       VITE_PORT: 5173,
       DISABLE_VITE: true,
+      // Generated here, not on first boot: the better-auth CLI reads .env when
+      // it loads your auth config, so `migrate` has to work before the app has
+      // ever run. A per-project random value, never a shared placeholder.
+      AUTH_SECRET: crypto.randomBytes(32).toString('hex'),
     }
 
     return header + Object.entries(envsToCreate).reduce((acc, [key, value]) => {

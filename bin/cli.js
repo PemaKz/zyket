@@ -285,7 +285,7 @@ function npmInstall() {
 			// Templates that ship auth need their tables created first.
 			const usesAuth = fs.existsSync(path.join(process.cwd(), 'src', 'services', 'auth'));
 			console.log('\nNext steps:');
-			if (usesAuth) console.log('  npx @better-auth/cli migrate   # create the auth tables');
+			if (usesAuth) console.log('  npx @better-auth/cli migrate --config src/services/auth/auth.js   # create the auth tables');
 			console.log('  node index.js\n');
 			if (fs.existsSync(path.join(process.cwd(), 'README.md'))) {
 				console.log('See README.md for template-specific details.\n');

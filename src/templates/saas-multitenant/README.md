@@ -26,7 +26,7 @@ routes, not on re-implementing what better-auth already exposes.
 ## Setup
 ```bash
 npm install
-npx @better-auth/cli migrate   # creates user/session/organization/member tables
+npx @better-auth/cli migrate --config src/services/auth/auth.js   # creates user/session/organization/member tables
 node index.js
 ```
 This starts the API on `:3000` and the Vite dashboard on `:5173`. Open

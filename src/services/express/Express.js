@@ -111,7 +111,9 @@ module.exports = class Express extends Service {
         }
     });
 
-    // Attach Express to HTTP server - this allows dynamic route registration
+    // Attach Express to the HTTP server, replacing the kernel's "still
+    // booting" placeholder. This happens exactly once: the Express router is
+    // mutable, so routes registered later need no re-attachment.
     this.#httpServer.removeAllListeners("request");
     this.#httpServer.on("request", this.#app);
 
@@ -166,16 +168,13 @@ module.exports = class Express extends Service {
           });
       }
     }
-    
-    this.#httpServer.removeAllListeners("request");
-    this.#httpServer.on("request", this.#app);
+    // No re-attachment: the app is already the server's request listener and
+    // its router picks up these routes immediately. Re-attaching would wipe
+    // engine.io's wrapper and kill the socket.io polling transport.
   }
 
   async regiterRawAllRoutes(path, handler) {
     this.#app.all(path, handler);
-
-    this.#httpServer.removeAllListeners("request");
-    this.#httpServer.on("request", this.#app);
   }
 
   async #loadCorsOrCreateDefault() {
