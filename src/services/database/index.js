@@ -61,7 +61,7 @@ module.exports = class Database extends Service {
   }
 
   async #loadModels() {
-    const models = await fg('*.js', { cwd: path.join(process.cwd(), "src", "models") });
+    const models = await fg('**/*.js', { cwd: path.join(process.cwd(), "src", "models"), ignore: ['migrations/**', '**/*.hook.js'] });
     for (const model of models) {
       const modelPath = path.join(process.cwd(), "src", "models", model);
       const modelFunc = require(modelPath);
@@ -70,7 +70,7 @@ module.exports = class Database extends Service {
         continue;
       }
       const modelInstance = modelFunc({sequelize: this.sequelize, container: this.#container, Sequelize});
-      this.models[model.replace('.js', '')] = modelInstance;
+      this.models[path.basename(model, '.js')] = modelInstance;
     }
 
     for (const model of Object.values(this.models)) {
